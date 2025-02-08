@@ -59,14 +59,14 @@ const releaseList = parser.getElementsByTagName("releases")[0];
 for (let i = 0; i < releaseList.childNodes.length; i++) {
     const release = releaseList.childNodes[i] as Element;
 
-    if (release.nodeType === 1 && release.getAttribute("version") === latestReleaseInformation.name) {
+    if (release.nodeType === 1 && release.getAttribute("version") === `v${latestReleaseInformation.name}`) {
         console.log("Latest release already added, nothing to be done");
         process.exit(0);
     }
 }
 
 const release = parser.createElement("release");
-release.setAttribute("version", latestReleaseInformation.name);
+release.setAttribute("version", `v${latestReleaseInformation.name}`);
 release.setAttribute("date", latestReleaseInformation.published_at.split("T")[0]);
 release.setAttribute("type", "stable");
 
