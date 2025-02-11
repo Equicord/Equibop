@@ -5,8 +5,13 @@
     "description": "A fork of Vesktop pre-packaged with Equicord",
     "keywords": [],
     "homepage": "https://github.com/Equicord/Equibop",
-    "license": "GPL-3.0 or later",
-    "author": "Equicord",
+    "license": "GPL-3.0-or-later",
+    "author": "Vendicated <vendicated@riseup.net>",
+    "maintainers": [
+        "Equicord",
+        "thororen (thororen1234)",
+        "cortex (refurbishing)"
+    ],
     "main": "dist/js/main.js",
     "scripts": {
         "build": "tsx scripts/build/build.mts",

@@ -10,24 +10,27 @@ You can join our [discord server](https://discord.gg/5Xh2W87egW) for commits, ch
 
 ## Main features
 
--   Much more lightweight and faster than the official Discord app
--   Linux Screenshare with sound & wayland
+- Much more lightweight and faster than the official Discord app
+- Linux Screenshare with sound & wayland
 
 **Extra included changes**
 
--   Equicord preinstalled
--   Custom Splash animations from [this PR](https://github.com/Vencord/Vesktop/pull/355)
--   Tray Customization & Voice detection and Badge from [this PR](https://github.com/Vencord/Vesktop/pull/517)
--   Global Keybind to Toggle voice status from [this PR](https://github.com/Vencord/Vesktop/pull/609)
--   Custom Arguments from [this PR](https://github.com/Equicord/Equibop/pull/46)
--   Remove (#) title prefix when Notification Badge option is toggled from [this PR](https://github.com/Vencord/Vesktop/pull/686)
+- Equicord preinstalled
+- Custom Splash animations from [this PR](https://github.com/Vencord/Vesktop/pull/355)
+- Tray Customization & Voice detection and Badge from [this PR](https://github.com/Vencord/Vesktop/pull/517)
+- Global Keybind to Toggle voice status from [this PR](https://github.com/Vencord/Vesktop/pull/609)
+- Custom Arguments from [this PR](https://github.com/Equicord/Equibop/pull/46)
+- Remove (#) title prefix when Notification Badge option is toggled from [this PR](https://github.com/Vencord/Vesktop/pull/686)
 
 **Linux Note**:
--   You can use the `--toggle-mic` & `--toggle-deafen` flags to toggle your microphone and deafen status from the terminal.
+
+- You can use the `--toggle-mic` & `--toggle-deafen` flags to toggle your microphone and deafen status from the terminal.
 
 **Not fully Supported**:
+
 <!-- not supported on windows yet lol -->
--   Global Keybinds
+
+- Global Keybinds
 
 ## Installing
 
@@ -36,24 +39,26 @@ You can join our [discord server](https://discord.gg/5Xh2W87egW) for commits, ch
 If you don't know the difference, pick the Installer.
 
 - Installer
-  - [Universal](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win.exe)
-  - [x64 / amd64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-x64.exe)
-  - [Arm® 64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-arm64.exe)
+    - [Universal](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win.exe)
+    - [x64 / amd64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-x64.exe)
+    - [Arm® 64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-arm64.exe)
 - Portable
-  - [x64 / amd64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-x64.zip)
-  - [Arm® 64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-arm64.zip)
+    - [x64 / amd64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-x64.zip)
+    - [Arm® 64](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-win-arm64.zip)
 
 ### Mac
 
 These work on both M Series and Intel Series Macs
--   [DMG](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-mac-universal.dmg)
--   [ZIP](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-mac-universal.zip)
+
+- [DMG](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-mac-universal.dmg)
+- [ZIP](https://github.com/Equicord/Equibop/releases/latest/download/Equibop-mac-universal.zip)
 
 ### Linux
+
 [![equibop](https://img.shields.io/badge/AVAILABLE_ON_THE_AUR-333232?style=for-the-badge&logo=arch-linux&logoColor=0F94D2&labelColor=%23171717)](https://aur.archlinux.org/packages?O=0&K=equibop)
 <br>
 <a href="https://flathub.org/apps/io.github.equicord.equibop">
-  <img src="https://flathub.org/api/badge?svg" alt="Download on Flathub" style="width:220px; height:auto;">
+<img src="https://flathub.org/api/badge?svg" alt="Download on Flathub" style="width:220px; height:auto;">
 </a>
 
 If you don't know the difference, pick amd64.

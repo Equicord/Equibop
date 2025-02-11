@@ -1,7 +1,7 @@
-/*
- * Vesktop, a desktop app aiming to give you a snappier Discord Experience
- * Copyright (c) 2025 Vendicated and Vesktop contributorss
- * SPDX-License-Identifier: GPL-3.0 or later
+/*
+ * Vesktop, a desktop app aiming to give you a snappier Discord Experience
+ * Copyright (c) 2025 Vendicated and Vesktop contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import {
@@ -42,7 +42,7 @@ import { darwinURL } from "./index";
 import { sendRendererCommand } from "./ipcCommands";
 import { initKeybinds } from "./keybinds";
 import { Settings, State, VencordSettings } from "./settings";
-import { addSplashLog, splash } from "./splash";
+import { addSplashLog, createSplashWindow } from "./splash";
 import { setTrayIcon } from "./tray";
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
 import { applyDeckKeyboardFix, askToApplySteamLayout, isDeckGameMode } from "./utils/steamOS";
@@ -526,7 +526,9 @@ export function loadUrl(uri: string | undefined) {
 export async function createWindows() {
     const startMinimized = process.argv.includes("--start-minimized");
 
+    let splash: BrowserWindow | undefined;
     if (Settings.store.enableSplashScreen !== false) {
+        splash = createSplashWindow(startMinimized);
         // SteamOS letterboxes and scales it terribly, so just full screen it
         if (isDeckGameMode) splash.setFullScreen(true);
         addSplashLog();

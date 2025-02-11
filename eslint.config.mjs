@@ -1,8 +1,8 @@
 /*
  * Vesktop, a desktop app aiming to give you a snappier Discord Experience
  * Copyright (c) 2023 Vendicated and Vencord contributors
- * SPDX-License-Identifier: GPL-3.0 or later
-*/
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 //@ts-check
 
@@ -42,10 +42,13 @@ export default tseslint.config(
             }
         },
         rules: {
-            "simpleHeader/header": ["error", {
-                files: ["scripts/header.txt"],
-                templates: { author: [".*", "Vendicated and Vesktop contributors"] }
-            }],
+            "simpleHeader/header": [
+                "error",
+                {
+                    files: ["scripts/header.txt"],
+                    templates: { author: [".*", "Vendicated and Vesktop contributors"] }
+                }
+            ],
 
             // ESLint Rules
 

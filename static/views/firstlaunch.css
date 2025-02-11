@@ -1,11 +1,11 @@
-    :root {
-        opacity: 1;
-        --bg: #131313;
-        --fg: white;
-        --fg-secondary: #b5bac1;
-        --fg-semi-trans: rgb(255 255 255 / 0.2);
-        --link: #00a8fc;
-    }
+:root {
+    opacity: 1;
+    --bg: #131313;
+    --fg: white;
+    --fg-secondary: #b5bac1;
+    --fg-semi-trans: rgb(255 255 255 / 0.2);
+    --link: #00a8fc;
+}
 
 * {
     opacity: 0;
