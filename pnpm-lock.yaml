@@ -70,8 +70,8 @@ importers:
         specifier: ^5.2.3
         version: 5.2.3(eslint-config-prettier@9.1.0(eslint@9.19.0))(eslint@9.19.0)(prettier@3.5.0)
       eslint-plugin-simple-header:
-        specifier: git+https://codeberg.org/thororen/eslint-plugin-simple-header.git
-        version: git+https://codeberg.org/thororen/eslint-plugin-simple-header.git#60016b769ec0965e85b72eeadc98cfe7036204ce(eslint@9.19.0)
+        specifier: 1.2.2
+        version: 1.2.2(eslint@9.19.0)
       eslint-plugin-simple-import-sort:
         specifier: ^12.1.1
         version: 12.1.1(eslint@9.19.0)
@@ -1387,9 +1387,8 @@ packages:
       eslint-config-prettier:
         optional: true
 
-  eslint-plugin-simple-header@git+https://codeberg.org/thororen/eslint-plugin-simple-header.git#60016b769ec0965e85b72eeadc98cfe7036204ce:
-    resolution: {commit: 60016b769ec0965e85b72eeadc98cfe7036204ce, repo: https://codeberg.org/thororen/eslint-plugin-simple-header.git, type: git}
-    version: 1.2.2
+  eslint-plugin-simple-header@1.2.2:
+    resolution: {integrity: sha512-LO4PejdYPraY5GKd9hutst82yAAL21MGIiFbHKIpoPDOWOW8zz3ZaDdQB3vx/yQGjWd5GifyQ/AGfNkr5c9kPw==}
     peerDependencies:
       eslint: '>=8.41.0'
 
@@ -4598,7 +4597,7 @@ snapshots:
     optionalDependencies:
       eslint-config-prettier: 9.1.0(eslint@9.19.0)
 
-  eslint-plugin-simple-header@git+https://codeberg.org/thororen/eslint-plugin-simple-header.git#60016b769ec0965e85b72eeadc98cfe7036204ce(eslint@9.19.0):
+  eslint-plugin-simple-header@1.2.2(eslint@9.19.0):
     dependencies:
       eslint: 9.19.0
 
