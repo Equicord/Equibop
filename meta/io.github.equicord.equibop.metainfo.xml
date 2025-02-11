@@ -31,13 +31,9 @@
     <release version="v2.1.2" date="2025-02-08" type="stable">
       <url>https://github.com/Equicord/Equibop/releases/tag/v2.1.2</url>
       <description>
-        <p>
-          <b>What's Changed:</b>
-          <ul>
-            <li>alot of fixes, improvements and update PRs"</li>
-            <li>all of V1.5.5 in Vesktop"</li>
-          </ul>
-        </p>
+        <p>What's Changed:</p>
+        <p>• alot of fixes, improvements and update PRs</p>
+        <p>• all of V1.5.5 in Vesktop</p>
       </description>
     </release>
     <release version="v2.1.1" date="2024-11-07" type="stable">
