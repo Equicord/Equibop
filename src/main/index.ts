@@ -6,7 +6,7 @@
 
 import "./ipc";
 
-import { app, BrowserWindow, ipcMain, nativeTheme, net, protocol } from "electron";
+import { app, BrowserWindow, nativeTheme, net, protocol } from "electron";
 import { autoUpdater } from "electron-updater";
 import { IpcEvents } from "shared/IpcEvents";
 
@@ -89,8 +89,8 @@ function init() {
         else if (mainWin) {
             const isToggleCommand = commandLine.some(arg => arg === "--toggle-mic" || arg === "--toggle-deafen");
             if (isToggleCommand) {
-                const command = commandLine.includes("--toggle-mic") 
-                    ? IpcEvents.TOGGLE_SELF_MUTE 
+                const command = commandLine.includes("--toggle-mic")
+                    ? IpcEvents.TOGGLE_SELF_MUTE
                     : IpcEvents.TOGGLE_SELF_DEAF;
                 mainWin.webContents.send(command);
             } else {

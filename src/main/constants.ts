@@ -5,7 +5,7 @@
  */
 
 import { app } from "electron";
-import { existsSync, mkdirSync, readdirSync, renameSync, rmdirSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 import { dirname, join } from "path";
 
 const equibopDir = dirname(process.execPath);

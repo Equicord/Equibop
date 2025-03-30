@@ -16,3 +16,4 @@ import "./tray";
 import "./streamerMode";
 import "./nativeFocus";
 import "./hideDownloadAppsButton";
+import "./disableDeepLinks";
