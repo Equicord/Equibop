@@ -51,18 +51,19 @@ function getBundledBunPath(): string {
     if (platform === "win32") bunBinary = "bun.exe";
 
     const bunPlatform = platform === "win32" ? "windows" : platform;
+    const bunArch = arch === "arm64" ? "aarch64" : "x64";
 
     debugLog(`Looking for bun binary for platform=${platform}, arch=${arch}`);
 
     const possiblePaths = [
         // packaged app with resourcesPath
         process.resourcesPath
-            ? join(process.resourcesPath, "bun", `${platform}-${arch}`, `bun-${bunPlatform}-${arch}`, bunBinary)
+            ? join(process.resourcesPath, "bun", `${platform}-${arch}`, `bun-${bunPlatform}-${bunArch}`, bunBinary)
             : null,
         // system Electron (AUR, etc) - app.asar is in the resources directory
-        join(app.getAppPath(), "..", "bun", `${platform}-${arch}`, `bun-${bunPlatform}-${arch}`, bunBinary),
+        join(app.getAppPath(), "..", "bun", `${platform}-${arch}`, `bun-${bunPlatform}-${bunArch}`, bunBinary),
         // development or alternative structure
-        join(app.getAppPath(), "bun", `${platform}-${arch}`, `bun-${bunPlatform}-${arch}`, bunBinary)
+        join(app.getAppPath(), "bun", `${platform}-${arch}`, `bun-${bunPlatform}-${bunArch}`, bunBinary)
     ].filter(Boolean);
 
     debugLog("Checking possible bun paths:", possiblePaths);
