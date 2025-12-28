@@ -25,7 +25,7 @@ autoUpdater.on("update-available", update => {
     openUpdater(update);
 });
 
-autoUpdater.on("update-downloaded", () => setTimeout(() => autoUpdater.quitAndInstall(), 100));
+autoUpdater.on("update-downloaded", () => autoUpdater.quitAndInstall());
 autoUpdater.on("download-progress", p =>
     updaterWindow?.webContents.send(UpdaterIpcEvents.DOWNLOAD_PROGRESS, p.percent)
 );
@@ -35,15 +35,23 @@ autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 autoUpdater.fullChangelog = true;
 
-const isOutdated = autoUpdater.checkForUpdates().then(res => Boolean(res?.isUpdateAvailable));
+const isOutdated = autoUpdater
+    .checkForUpdates()
+    .then(res => Boolean(res?.isUpdateAvailable))
+    .catch(() => false);
 
 handle(IpcEvents.UPDATER_IS_OUTDATED, () => isOutdated);
 handle(IpcEvents.UPDATER_OPEN, async () => {
-    const res = await autoUpdater.checkForUpdates();
+    const res = await autoUpdater.checkForUpdates().catch(() => null);
     if (res?.isUpdateAvailable && res.updateInfo) openUpdater(res.updateInfo);
 });
 
 function openUpdater(update: UpdateInfo) {
+    if (updaterWindow) {
+        updaterWindow.focus();
+        return;
+    }
+
     updaterWindow = new BrowserWindow({
         title: "Equibop Updater",
         autoHideMenuBar: true,
