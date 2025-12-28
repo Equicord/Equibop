@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createWriteStream, mkdirSync } from "original-fs";
+import { closeSync, createWriteStream, fsyncSync, mkdirSync, openSync } from "original-fs";
 import { dirname } from "path";
+import { Millis } from "shared/utils/millis";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { setTimeout } from "timers/promises";
@@ -19,16 +20,24 @@ export async function downloadFile(url: string, file: string, options: RequestIn
 
     mkdirSync(dirname(file), { recursive: true });
 
-    await pipeline(
-        // @ts-expect-error odd type error
-        Readable.fromWeb(res.body!),
-        createWriteStream(file, {
-            autoClose: true
-        })
-    );
-}
+    const writeStream = createWriteStream(file, { autoClose: false });
+    const closeStream = () => new Promise<void>(r => writeStream.close(() => r()));
 
-const ONE_MINUTE_MS = 1000 * 60;
+    try {
+        await pipeline(
+            // @ts-expect-error odd type error
+            Readable.fromWeb(res.body!),
+            writeStream
+        );
+        await closeStream();
+        const fd = openSync(file, "r");
+        fsyncSync(fd);
+        closeSync(fd);
+    } catch (err) {
+        await closeStream();
+        throw err;
+    }
+}
 
 export async function fetchie(url: string, options?: RequestInit, { retryOnNetworkError }: FetchieOptions = {}) {
     let res: Response | undefined;
@@ -39,7 +48,7 @@ export async function fetchie(url: string, options?: RequestInit, { retryOnNetwo
         if (retryOnNetworkError) {
             console.error("Failed to fetch", url + ".", "Gonna retry with backoff.");
 
-            for (let tries = 0, delayMs = 500; tries < 20; tries++, delayMs = Math.min(2 * delayMs, ONE_MINUTE_MS)) {
+            for (let tries = 0, delayMs = 500; tries < 20; tries++, delayMs = Math.min(2 * delayMs, Millis.MINUTE)) {
                 await setTimeout(delayMs);
                 try {
                     res = await fetch(url, options);
