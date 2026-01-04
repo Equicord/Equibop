@@ -28,6 +28,64 @@ You can join our [discord server](https://equicord.org/discord) for commits, cha
 **Not fully Supported**:
 - Global Keybinds (Windows/macOS - use command-line flags on Linux instead)
 
+# Equibop Arguments
+
+### Runtime Flags
+These flags can be passed when launching the application  
+(or via `Settings > Equibop Settings > Arguments > Configure`):
+
+```bash
+--wayland
+```
+> Forces the application to use the **Ozone Wayland** platform.  
+> Automatically enables:  
+> • `WaylandWindowDecorations`  
+> • `VaapiVideoDecodeLinuxGL` (hardware acceleration)
+
+**Alternative (basic Wayland):**
+```bash
+--enable-features=UseOzonePlatform --ozone-platform=wayland
+```
+
+```bash
+--no-sandbox
+```
+> Disables the Chromium sandbox.  
+> Commonly used when the application is executed as root.
+
+```bash
+--force_high_performance_gpu
+```
+> Instructs the engine to prioritize the discrete (high-performance) GPU.
+
+### Development and Build Arguments
+These arguments are parsed during the build process:
+
+```bash
+--dev
+```
+> Enables development mode.  
+> • Disables code minification  
+> • Sets `IS_DEV` to `true`
+
+```bash
+--watch
+```
+> Starts a persistent build context that monitors file changes  
+> and triggers automatic rebuilds.
+
+### Persistent Configuration File
+The launcher supports a flags file located at:
+
+```
+${XDG_CONFIG_HOME}/equibop-flags.conf
+```
+
+**Rules:**
+- Empty lines are ignored
+- Lines starting with `#` are treated as comments
+- Valid entries are appended to the execution command
+
 ## Installing
 Check the [Releases](https://github.com/Equicord/Equibop/releases) page
 
