@@ -12,7 +12,7 @@ import "./vesktopProtocol";
 
 import { app, BrowserWindow, nativeTheme } from "electron";
 
-import { DATA_DIR } from "./constants";
+import { DATA_DIR, IS_LINUX } from "./constants";
 import { createFirstLaunchTour } from "./firstLaunch";
 import { createWindows } from "./mainWindow";
 import { registerMediaPermissionsHandler } from "./mediaPermissions";
@@ -24,8 +24,6 @@ import { isDeckGameMode } from "./utils/steamOS";
 console.log("Equibop v" + app.getVersion());
 
 process.env.EQUICORD_USER_DATA_DIR = DATA_DIR;
-
-const isLinux = process.platform === "linux";
 
 export let enableHardwareAcceleration = true;
 
@@ -48,7 +46,7 @@ function init() {
             enabledFeatures.add("AcceleratedVideoEncoder");
             enabledFeatures.add("AcceleratedVideoDecoder");
 
-            if (isLinux) {
+            if (IS_LINUX) {
                 enabledFeatures.add("AcceleratedVideoDecodeLinuxGL");
                 enabledFeatures.add("AcceleratedVideoDecodeLinuxZeroCopyGL");
             }
@@ -96,7 +94,7 @@ function init() {
     disabledFeatures.add("HardwareMediaKeyHandling");
     disabledFeatures.add("MediaSessionService");
 
-    if (isLinux) {
+    if (IS_LINUX) {
         // Support TTS on Linux using https://wiki.archlinux.org/title/Speech_dispatcher
         app.commandLine.appendSwitch("enable-speech-dispatcher");
         // Suppress Wayland protocol errors from incomplete compositor implementations

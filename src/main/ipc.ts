@@ -51,12 +51,18 @@ const VESKTOP_RENDERER_CSS_PATH = join(__dirname, "renderer.css");
 handleSync(IpcEvents.GET_VESKTOP_RENDERER_SCRIPT, () => readFileSync(VESKTOP_RENDERER_JS_PATH, "utf-8"));
 handle(IpcEvents.GET_VESKTOP_RENDERER_CSS, () => readFile(VESKTOP_RENDERER_CSS_PATH, "utf-8"));
 
+let devCssWatcher: FSWatcher | null = null;
+
 if (IS_DEV) {
-    watch(VESKTOP_RENDERER_CSS_PATH, { persistent: false }, async () => {
-        mainWin?.webContents.postMessage(
-            IpcEvents.VESKTOP_RENDERER_CSS_UPDATE,
-            await readFile(VESKTOP_RENDERER_CSS_PATH, "utf-8")
-        );
+    devCssWatcher = watch(VESKTOP_RENDERER_CSS_PATH, { persistent: false }, async () => {
+        try {
+            mainWin?.webContents.postMessage(
+                IpcEvents.VESKTOP_RENDERER_CSS_UPDATE,
+                await readFile(VESKTOP_RENDERER_CSS_PATH, "utf-8")
+            );
+        } catch (err) {
+            console.error("[IPC] Failed to read dev CSS:", err);
+        }
     });
 }
 
@@ -91,8 +97,8 @@ handle(IpcEvents.RELAUNCH, async () => {
     if (isDeckGameMode) {
         // We can't properly relaunch when running under gamescope, but we can at least navigate to our page in Steam.
         await showGamePage();
-    } else if (app.isPackaged && process.env.APPIMAGE) {
-        execFile(process.env.APPIMAGE, options.args);
+    } else if (process.platform === "linux" && app.isPackaged && process.env.APPIMAGE) {
+        execFile(process.env.APPIMAGE, options.args, { windowsHide: true });
     } else {
         app.relaunch(options);
     }
@@ -211,7 +217,7 @@ open(VENCORD_QUICKCSS_FILE, "a+")
             VENCORD_QUICKCSS_FILE,
             { persistent: false },
             debounce(async () => {
-                mainWin?.webContents.postMessage("VencordQuickCssUpdate", await readCss());
+                mainWin?.webContents.postMessage(IpcEvents.VENCORD_QUICK_CSS_UPDATE, await readCss());
             }, 50)
         );
     })
@@ -224,7 +230,7 @@ themesWatcher = watch(
     VENCORD_THEMES_DIR,
     { persistent: false },
     debounce(() => {
-        mainWin?.webContents.postMessage("VencordThemeUpdate", void 0);
+        mainWin?.webContents.postMessage(IpcEvents.VENCORD_THEME_UPDATE, void 0);
     })
 );
 
@@ -236,6 +242,10 @@ export function cleanupFileWatchers() {
     if (themesWatcher) {
         themesWatcher.close();
         themesWatcher = null;
+    }
+    if (devCssWatcher) {
+        devCssWatcher.close();
+        devCssWatcher = null;
     }
 }
 

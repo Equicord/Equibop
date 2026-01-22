@@ -165,6 +165,7 @@ let configSettingsListener: (() => void) | null = null;
 let wsSettingsListener: (() => void) | null = null;
 let initTimeout: NodeJS.Timeout | null = null;
 let isDestroying: boolean = false;
+let isInitializing: boolean = false;
 let stateFileWatcher: FSWatcher | null = null;
 let stateFilePath: string | null = null;
 let stateCheckInterval: NodeJS.Timeout | null = null;
@@ -175,10 +176,11 @@ const PROCESS_KILL_TIMEOUT_MS = 5000;
 const STATE_CHECK_INTERVAL_MS = 500;
 const STATE_FILE_STALE_MS = 60000;
 const WS_RECONNECT_INTERVAL_MS = 5000;
+const WS_MAX_RECONNECT_ATTEMPTS = 10;
 
 let ws: WebSocket | null = null;
 let wsReconnectTimer: NodeJS.Timeout | null = null;
-let wsIntentionalClose = false;
+let wsReconnectAttempts = 0;
 
 function findStateFile(): string | null {
     const tempDir = tmpdir();
@@ -326,16 +328,16 @@ function getWsConnectionInfo(): { host: string; port: number } | null {
         };
     }
 
+    if (serverHost && serverPort) {
+        return { host: serverHost, port: serverPort };
+    }
+
     const state = readStateFile();
     if (state?.servers.bridge) {
         return {
             host: state.servers.bridge.host,
             port: state.servers.bridge.port
         };
-    }
-
-    if (serverHost && serverPort) {
-        return { host: serverHost, port: serverPort };
     }
 
     return null;
@@ -354,7 +356,7 @@ function connectWebSocket() {
     debugLog(`Connecting WebSocket to ${wsUrl}`);
 
     if (ws) {
-        wsIntentionalClose = true;
+        ws.removeAllListeners();
         ws.close();
     }
 
@@ -376,11 +378,6 @@ function connectWebSocket() {
     });
 
     ws.on("close", () => {
-        if (wsIntentionalClose) {
-            wsIntentionalClose = false;
-            return;
-        }
-
         const autoReconnect = Settings.store.arRPCWebSocketAutoReconnect ?? true;
         debugLog(`WebSocket closed${autoReconnect ? ", will reconnect" : ""}`);
 
@@ -388,16 +385,23 @@ function connectWebSocket() {
 
         if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
 
-        if (autoReconnect && shouldConnectWebSocket()) {
+        if (autoReconnect && shouldConnectWebSocket() && wsReconnectAttempts < WS_MAX_RECONNECT_ATTEMPTS) {
+            wsReconnectAttempts++;
+            const backoffDelay = WS_RECONNECT_INTERVAL_MS * Math.pow(2, Math.min(wsReconnectAttempts - 1, 4));
+            debugLog(
+                `WebSocket reconnect attempt ${wsReconnectAttempts}/${WS_MAX_RECONNECT_ATTEMPTS} in ${backoffDelay}ms`
+            );
             wsReconnectTimer = setTimeout(() => {
-                debugLog("Attempting WebSocket reconnect...");
                 connectWebSocket();
-            }, WS_RECONNECT_INTERVAL_MS);
+            }, backoffDelay);
+        } else if (wsReconnectAttempts >= WS_MAX_RECONNECT_ATTEMPTS) {
+            debugLog("Max WebSocket reconnect attempts reached");
         }
     });
 
     ws.on("open", () => {
         debugLog("WebSocket connected");
+        wsReconnectAttempts = 0;
         if (wsReconnectTimer) {
             clearTimeout(wsReconnectTimer);
             wsReconnectTimer = null;
@@ -411,8 +415,10 @@ function stopWebSocket() {
         wsReconnectTimer = null;
     }
 
+    wsReconnectAttempts = 0;
+
     if (ws) {
-        wsIntentionalClose = true;
+        ws.removeAllListeners();
         ws.close();
         ws = null;
     }
@@ -502,7 +508,7 @@ function clearInitTimeout() {
 }
 
 export async function destroyArRPC(): Promise<void> {
-    if (!arrpcProcess || isDestroying) return;
+    if ((!arrpcProcess && !isInitializing) || isDestroying) return;
 
     isDestroying = true;
     debugLog("Destroying arRPC process");
@@ -530,7 +536,7 @@ export async function destroyArRPC(): Promise<void> {
                 const timeout = setTimeout(() => {
                     if (!proc.killed) {
                         debugLog("Process did not exit gracefully, force killing");
-                        proc.kill("SIGKILL");
+                        proc.kill();
                     }
                     resolve();
                 }, PROCESS_KILL_TIMEOUT_MS);
@@ -540,7 +546,7 @@ export async function destroyArRPC(): Promise<void> {
                     resolve();
                 });
 
-                proc.kill("SIGTERM");
+                proc.kill();
             });
 
             await killPromise;
@@ -575,10 +581,12 @@ export async function initArRPC() {
         return;
     }
 
-    if (arrpcProcess) {
-        debugLog("arRPC process already running");
+    if (arrpcProcess || isInitializing) {
+        debugLog("arRPC process already running or initializing");
         return;
     }
+
+    isInitializing = true;
 
     lastError = null;
     lastExitCode = null;
@@ -646,7 +654,9 @@ export async function initArRPC() {
                         mainWin?.webContents.send(IpcEvents.ARRPC_ACTIVITY, JSON.parse(message.data));
                         return;
                     }
-                } catch {}
+                } catch (e) {
+                    debugLog(`Failed to parse stderr JSON: ${e}`);
+                }
                 console.error("[arRPC ! stderr]", output);
                 lastError = output;
             }
@@ -685,6 +695,8 @@ export async function initArRPC() {
         console.error("[arRPC] Failed to start arRPC server:", e);
         lastError = e instanceof Error ? e.message : String(e);
         clearInitTimeout();
+    } finally {
+        isInitializing = false;
     }
 }
 

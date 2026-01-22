@@ -11,6 +11,7 @@ import { STATIC_DIR } from "shared/paths";
 import { createAboutWindow } from "./about";
 import { createArgumentsWindow } from "./arguments";
 import { restartArRPC } from "./arrpc";
+import { IS_LINUX } from "./constants";
 import { AppEvents } from "./events";
 import { Settings } from "./settings";
 import { resolveAssetPath, UserAssetType } from "./userAssets";
@@ -19,10 +20,8 @@ import { downloadVencordAsar } from "./utils/vencordLoader";
 
 type TrayVariant = "tray" | "trayUnread" | "traySpeaking" | "trayIdle" | "trayMuted" | "trayDeafened";
 
-const isLinux = process.platform === "linux";
-
 let nativeSNI: typeof import("libvesktop") | null = null;
-if (isLinux) {
+if (IS_LINUX) {
     try {
         nativeSNI = require(join(STATIC_DIR, `dist/libvesktop-${process.arch}.node`));
     } catch (e) {
@@ -33,11 +32,13 @@ if (isLinux) {
 let tray: Tray | null = null;
 let trayVariant: TrayVariant = "tray";
 let onTrayClick: (() => void) | null = null;
+let onTrayRightClick: (() => void) | null = null;
 let trayUpdateTimeout: NodeJS.Timeout | null = null;
 let pendingTrayVariant: TrayVariant | null = null;
 let nativeTrayWindow: BrowserWindow | null = null;
 let nativeTrayUpdateCallback: (() => void) | null = null;
 
+const TRAY_CACHE_MAX = 10;
 const trayImageCache = new Map<string, NativeImage>();
 
 let useNativeTray = false;
@@ -48,6 +49,11 @@ async function getCachedTrayImage(variant: TrayVariant): Promise<NativeImage> {
 
     const cached = trayImageCache.get(path);
     if (cached) return cached;
+
+    if (trayImageCache.size >= TRAY_CACHE_MAX) {
+        const firstKey = trayImageCache.keys().next().value;
+        if (firstKey) trayImageCache.delete(firstKey);
+    }
 
     const image = nativeImage.createFromPath(path);
     trayImageCache.set(path, image);
@@ -97,13 +103,13 @@ const userAssetChangedListener = async (asset: string) => {
     if (!asset.startsWith("tray")) return;
 
     try {
+        trayImageCache.delete(await resolveAssetPath(asset as UserAssetType));
+
         if (useNativeTray && nativeSNI) {
-            trayImageCache.clear();
             const image = await getCachedTrayImage(trayVariant);
             const pixmap = await nativeImageToPixmap(image);
             nativeSNI.setStatusNotifierIcon(pixmap);
         } else if (tray) {
-            trayImageCache.clear();
             const image = await getCachedTrayImage(trayVariant);
             tray.setImage(image);
         }
@@ -200,6 +206,10 @@ export function destroyTray() {
                 tray.removeListener("click", onTrayClick);
                 onTrayClick = null;
             }
+            if (onTrayRightClick) {
+                tray.removeListener("right-click", onTrayRightClick);
+                onTrayRightClick = null;
+            }
             tray.destroy();
         } catch (e) {
             console.error("[Tray] Failed to destroy Electron tray:", e);
@@ -220,7 +230,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
         }
     }
 
-    if (isLinux && nativeSNI) {
+    if (IS_LINUX && nativeSNI) {
         try {
             const success = nativeSNI.initStatusNotifierItem();
             if (success) {
@@ -273,19 +283,21 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                             createAboutWindow();
                             break;
                         case 3: // repair equicord
-                            downloadVencordAsar().then(() => {
-                                app.relaunch();
-                                app.quit();
-                            });
+                            downloadVencordAsar()
+                                .then(() => {
+                                    app.relaunch();
+                                    app.quit();
+                                })
+                                .catch(e => console.error("Failed to repair Equicord:", e));
                             break;
                         case 4: // reset Equibop
-                            clearData(win);
+                            clearData(win).catch(e => console.error("Failed to reset Equibop:", e));
                             break;
                         case 5: // launch arguments
                             createArgumentsWindow();
                             break;
                         case 6: // restart arRPC-bun
-                            restartArRPC();
+                            restartArRPC().catch(e => console.error("Failed to restart arRPC:", e));
                             break;
                         case 8: // restart
                             app.relaunch();
@@ -330,16 +342,19 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
         },
         {
             label: "Repair Equicord",
-            async click() {
-                await downloadVencordAsar();
-                app.relaunch();
-                app.quit();
+            click() {
+                downloadVencordAsar()
+                    .then(() => {
+                        app.relaunch();
+                        app.quit();
+                    })
+                    .catch(e => console.error("Failed to repair Equicord:", e));
             }
         },
         {
             label: "Reset Equibop",
-            async click() {
-                await clearData(win);
+            click() {
+                clearData(win).catch(e => console.error("Failed to reset Equibop:", e));
             }
         },
         {
@@ -349,8 +364,8 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
         {
             label: "Restart arRPC",
             visible: Settings.store.arRPC === true,
-            async click() {
-                await restartArRPC();
+            click() {
+                restartArRPC().catch(e => console.error("Failed to restart arRPC:", e));
             }
         },
         {
@@ -377,11 +392,12 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
         tray = new Tray(initialImage);
         tray.setToolTip("Equibop");
 
-        if (isLinux) {
+        if (IS_LINUX) {
             tray.on("click", onTrayClick);
-            tray.on("right-click", () => {
-                tray!.popUpContextMenu(trayMenu);
-            });
+            onTrayRightClick = () => {
+                tray?.popUpContextMenu(trayMenu);
+            };
+            tray.on("right-click", onTrayRightClick);
         } else {
             tray.setContextMenu(trayMenu);
             tray.on("click", onTrayClick);

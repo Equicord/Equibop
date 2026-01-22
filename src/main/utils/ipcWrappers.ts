@@ -8,17 +8,23 @@ import { ipcMain, IpcMainEvent, IpcMainInvokeEvent, WebFrameMain } from "electro
 import { DISCORD_HOSTNAMES } from "main/constants";
 import { IpcEvents, UpdaterIpcEvents } from "shared/IpcEvents";
 
+const ALLOWED_PROTOCOLS = new Set(["file:", "vesktop:", "equibop:"]);
+
 export function validateSender(frame: WebFrameMain | null, event: string) {
     if (!frame) throw new Error(`ipc[${event}]: No sender frame`);
     if (!frame.url) return;
 
+    let hostname: string;
+    let protocol: string;
     try {
-        var { hostname, protocol } = new URL(frame.url);
-    } catch (e) {
+        const url = new URL(frame.url);
+        hostname = url.hostname;
+        protocol = url.protocol;
+    } catch {
         throw new Error(`ipc[${event}]: Invalid URL ${frame.url}`);
     }
 
-    if (protocol === "file:" || protocol === "vesktop:" || protocol === "equibop:") return;
+    if (ALLOWED_PROTOCOLS.has(protocol)) return;
 
     if (!DISCORD_HOSTNAMES.includes(hostname)) {
         throw new Error(`ipc[${event}]: Disallowed hostname ${hostname}`);

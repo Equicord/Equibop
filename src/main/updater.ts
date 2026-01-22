@@ -8,50 +8,109 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { autoUpdater, UpdateInfo } from "electron-updater";
 import { join } from "path";
 import { IpcEvents, UpdaterIpcEvents } from "shared/IpcEvents";
-import { STATIC_DIR } from "shared/paths";
 import { Millis } from "shared/utils/millis";
+import { promiseWithTimeout, rejectAfterTimeout } from "shared/utils/timeout";
 
 import { State } from "./settings";
 import { handle } from "./utils/ipcWrappers";
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
+import { getWindowIcon } from "./utils/windowOptions";
 import { loadView } from "./vesktopStatic";
 
-let updaterWindow: BrowserWindow | null = null;
+const UPDATE_CHECK_TIMEOUT = 30 * Millis.SECOND;
+const DOWNLOAD_TIMEOUT = 5 * Millis.MINUTE;
 
-autoUpdater.on("update-available", update => {
+let updaterWindow: BrowserWindow | null = null;
+let quitAndInstallTimer: NodeJS.Timeout | null = null;
+
+type AutoUpdaterEvent = "update-available" | "update-downloaded" | "download-progress" | "error";
+const registeredListeners: Array<{ event: AutoUpdaterEvent; listener: (...args: unknown[]) => void }> = [];
+
+function addUpdaterListener<T extends AutoUpdaterEvent>(
+    event: T,
+    listener: T extends "update-available"
+        ? (update: UpdateInfo) => void
+        : T extends "download-progress"
+          ? (p: { percent: number }) => void
+          : T extends "error"
+            ? (err: Error) => void
+            : () => void
+) {
+    autoUpdater.on(event, listener as (...args: unknown[]) => void);
+    registeredListeners.push({ event, listener: listener as (...args: unknown[]) => void });
+}
+
+addUpdaterListener("update-available", (update: UpdateInfo) => {
     if (State.store.updater?.ignoredVersion === update.version) return;
     if ((State.store.updater?.snoozeUntil ?? 0) > Date.now()) return;
 
     openUpdater(update);
 });
 
-autoUpdater.on("update-downloaded", () => setTimeout(() => autoUpdater.quitAndInstall(), 100));
-autoUpdater.on("download-progress", p =>
-    updaterWindow?.webContents.send(UpdaterIpcEvents.DOWNLOAD_PROGRESS, p.percent)
-);
-autoUpdater.on("error", err => updaterWindow?.webContents.send(UpdaterIpcEvents.ERROR, err.message));
+addUpdaterListener("update-downloaded", () => {
+    quitAndInstallTimer = setTimeout(() => {
+        quitAndInstallTimer = null;
+        try {
+            autoUpdater.quitAndInstall();
+        } catch (err) {
+            console.error("[Updater] Failed to quit and install:", err);
+        }
+    }, 100);
+});
+
+addUpdaterListener("download-progress", (p: { percent: number }) => {
+    updaterWindow?.webContents.send(UpdaterIpcEvents.DOWNLOAD_PROGRESS, p.percent);
+});
+
+addUpdaterListener("error", (err: Error) => {
+    updaterWindow?.webContents.send(UpdaterIpcEvents.ERROR, err.message);
+});
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 autoUpdater.fullChangelog = true;
 
-const isOutdated = autoUpdater.checkForUpdates().then(res => Boolean(res?.isUpdateAvailable));
+async function checkForUpdatesWithTimeout(): Promise<boolean> {
+    try {
+        const res = await promiseWithTimeout(autoUpdater.checkForUpdates(), UPDATE_CHECK_TIMEOUT);
+        return Boolean(res?.isUpdateAvailable);
+    } catch (err) {
+        console.error("[Updater] Failed to check for updates:", err);
+        return false;
+    }
+}
+
+const isOutdated = checkForUpdatesWithTimeout();
 
 handle(IpcEvents.UPDATER_IS_OUTDATED, () => isOutdated);
 handle(IpcEvents.UPDATER_OPEN, async () => {
-    const res = await autoUpdater.checkForUpdates();
-    if (res?.isUpdateAvailable && res.updateInfo) openUpdater(res.updateInfo);
+    try {
+        const res = await promiseWithTimeout(autoUpdater.checkForUpdates(), UPDATE_CHECK_TIMEOUT);
+        if (res?.isUpdateAvailable && res.updateInfo) openUpdater(res.updateInfo);
+    } catch (err) {
+        console.error("[Updater] Failed to check for updates:", err);
+    }
 });
 
+function cleanupUpdaterHandlers() {
+    ipcMain.removeHandler(UpdaterIpcEvents.GET_DATA);
+    ipcMain.removeHandler(UpdaterIpcEvents.INSTALL);
+    ipcMain.removeHandler(UpdaterIpcEvents.SNOOZE_UPDATE);
+    ipcMain.removeHandler(UpdaterIpcEvents.IGNORE_UPDATE);
+}
+
 function openUpdater(update: UpdateInfo) {
+    if (updaterWindow && !updaterWindow.isDestroyed()) {
+        updaterWindow.focus();
+        return;
+    }
+
+    cleanupUpdaterHandlers();
+
     updaterWindow = new BrowserWindow({
         title: "Equibop Updater",
         autoHideMenuBar: true,
-        ...(process.platform === "win32"
-            ? { icon: join(STATIC_DIR, "icon.ico") }
-            : process.platform === "linux"
-              ? { icon: join(STATIC_DIR, "icon.png") }
-              : {}),
+        ...getWindowIcon(),
         webPreferences: {
             preload: join(__dirname, "updaterPreload.js")
         },
@@ -62,7 +121,18 @@ function openUpdater(update: UpdateInfo) {
 
     handle(UpdaterIpcEvents.GET_DATA, () => ({ update, version: app.getVersion() }));
     handle(UpdaterIpcEvents.INSTALL, async () => {
-        await autoUpdater.downloadUpdate();
+        try {
+            await Promise.race([
+                autoUpdater.downloadUpdate(),
+                rejectAfterTimeout(DOWNLOAD_TIMEOUT, "Download timed out")
+            ]);
+        } catch (err) {
+            console.error("[Updater] Failed to download update:", err);
+            updaterWindow?.webContents.send(
+                UpdaterIpcEvents.ERROR,
+                err instanceof Error ? err.message : "Download failed"
+            );
+        }
     });
     handle(UpdaterIpcEvents.SNOOZE_UPDATE, () => {
         State.store.updater ??= {};
@@ -76,12 +146,30 @@ function openUpdater(update: UpdateInfo) {
     });
 
     updaterWindow.on("closed", () => {
-        ipcMain.removeHandler(UpdaterIpcEvents.GET_DATA);
-        ipcMain.removeHandler(UpdaterIpcEvents.INSTALL);
-        ipcMain.removeHandler(UpdaterIpcEvents.SNOOZE_UPDATE);
-        ipcMain.removeHandler(UpdaterIpcEvents.IGNORE_UPDATE);
+        cleanupUpdaterHandlers();
         updaterWindow = null;
     });
 
     loadView(updaterWindow, "updater/index.html");
 }
+
+export function cleanupUpdater() {
+    if (quitAndInstallTimer) {
+        clearTimeout(quitAndInstallTimer);
+        quitAndInstallTimer = null;
+    }
+
+    for (const { event, listener } of registeredListeners) {
+        autoUpdater.off(event, listener);
+    }
+    registeredListeners.length = 0;
+
+    cleanupUpdaterHandlers();
+
+    if (updaterWindow && !updaterWindow.isDestroyed()) {
+        updaterWindow.close();
+    }
+    updaterWindow = null;
+}
+
+app.on("quit", cleanupUpdater);

@@ -14,6 +14,7 @@ type TrayVariant = "tray" | "trayUnread" | "traySpeaking" | "trayIdle" | "trayMu
 
 let isInCall = false;
 let currentVariant: TrayVariant | null = null;
+let initialized = false;
 
 const subscriptions: Array<{ event: string; callback: (data: any) => void }> = [];
 
@@ -42,9 +43,12 @@ export function cleanupTraySubscriptions() {
         FluxDispatcher.unsubscribe(event, callback);
     });
     subscriptions.length = 0;
+    initialized = false;
 }
 
 onceReady.then(() => {
+    if (initialized) return;
+    initialized = true;
     const userID = UserStore.getCurrentUser().id;
 
     const speakingCallback = (params: any) => {

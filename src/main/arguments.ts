@@ -5,11 +5,10 @@
  */
 
 import { BrowserWindow } from "electron";
-import { join } from "path";
-import { STATIC_DIR } from "shared/paths";
 
 import { State } from "./settings";
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
+import { getWindowIcon } from "./utils/windowOptions";
 import { loadView } from "./vesktopStatic";
 
 let argumentsWindow: BrowserWindow | null = null;
@@ -23,11 +22,7 @@ export function createArgumentsWindow() {
     argumentsWindow = new BrowserWindow({
         center: true,
         autoHideMenuBar: true,
-        ...(process.platform === "win32"
-            ? { icon: join(STATIC_DIR, "icon.ico") }
-            : process.platform === "linux"
-              ? { icon: join(STATIC_DIR, "icon.png") }
-              : {}),
+        ...getWindowIcon(),
         height: 300,
         width: 500,
         resizable: false

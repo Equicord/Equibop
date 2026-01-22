@@ -14,7 +14,7 @@ import { DATA_DIR, VENCORD_SETTINGS_FILE } from "./constants";
 const SETTINGS_FILE = join(DATA_DIR, "settings.json");
 const STATE_FILE = join(DATA_DIR, "state.json");
 
-function loadSettings<T extends object = any>(file: string, name: string) {
+function loadSettings<T extends object>(file: string, name: string) {
     let settings = {} as T;
     try {
         const content = readFileSync(file, "utf8");
@@ -25,11 +25,12 @@ function loadSettings<T extends object = any>(file: string, name: string) {
         }
     } catch {}
 
+    mkdirSync(dirname(file), { recursive: true });
+
     const store = new SettingsStore(settings);
     store.addGlobalChangeListener(o => {
         try {
-            mkdirSync(dirname(file), { recursive: true });
-            writeFileSync(file, JSON.stringify(o, null, 4));
+            writeFileSync(file, JSON.stringify(o));
         } catch (err) {
             console.error(`Failed to save settings to ${name}.json:`, err);
         }
@@ -39,5 +40,5 @@ function loadSettings<T extends object = any>(file: string, name: string) {
 }
 
 export const Settings = loadSettings<TSettings>(SETTINGS_FILE, "Equibop settings");
-export const VencordSettings = loadSettings<any>(VENCORD_SETTINGS_FILE, "Vencord settings");
+export const VencordSettings = loadSettings<Record<string, any>>(VENCORD_SETTINGS_FILE, "Vencord settings");
 export const State = loadSettings<TState>(STATE_FILE, "Equibop state");

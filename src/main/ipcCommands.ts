@@ -11,6 +11,7 @@ import { IpcEvents } from "shared/IpcEvents";
 import { mainWin } from "./mainWindow";
 
 const DEFAULT_TIMEOUT_MS = 30000;
+const MAX_RESOLVERS = 1000;
 
 interface ResolverEntry {
     resolve: (data: unknown) => void;
@@ -19,6 +20,20 @@ interface ResolverEntry {
 }
 
 const resolvers = new Map<string, ResolverEntry>();
+
+function evictOldestResolver() {
+    if (resolvers.size >= MAX_RESOLVERS) {
+        const firstKey = resolvers.keys().next().value;
+        if (firstKey) {
+            const entry = resolvers.get(firstKey);
+            if (entry) {
+                clearTimeout(entry.timer);
+                entry.reject(new Error("Evicted due to resolver limit"));
+            }
+            resolvers.delete(firstKey);
+        }
+    }
+}
 
 export interface IpcMessage {
     nonce: string;
@@ -49,6 +64,8 @@ export function sendRendererCommand<T = unknown>(
     }
 
     const nonce = randomUUID();
+
+    evictOldestResolver();
 
     const promise = new Promise<T>((resolve, reject) => {
         const timer = setTimeout(() => {

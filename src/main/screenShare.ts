@@ -8,7 +8,7 @@ import { desktopCapturer, session, Streams } from "electron";
 import type { StreamPick } from "renderer/components/ScreenSharePicker";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 
-import { isWayland } from "./constants";
+import { IS_WAYLAND } from "./constants";
 import { getPlatformSpoofInfo } from "./gnuSpoofing";
 import { sendRendererCommand } from "./ipcCommands";
 import { handle } from "./utils/ipcWrappers";
@@ -27,7 +27,7 @@ export function registerScreenShareHandler() {
 
     session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
         // request full resolution on wayland right away because we always only end up with one result anyway
-        const width = isWayland ? 1920 : 176;
+        const width = IS_WAYLAND ? 1920 : 176;
         const sources = await desktopCapturer
             .getSources({
                 types: ["window", "screen"],
@@ -46,7 +46,7 @@ export function registerScreenShareHandler() {
             url: thumbnail.toDataURL()
         }));
 
-        if (isWayland) {
+        if (IS_WAYLAND) {
             const video = data[0];
             if (video) {
                 const stream = await sendRendererCommand<StreamPick>(IpcCommands.SCREEN_SHARE_PICKER, {

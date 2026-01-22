@@ -15,6 +15,7 @@ let NotificationSettingsStore: any;
 
 export function setBadge() {
     if (Settings.store.appBadge === false) return;
+    if (!GuildReadStateStore || !NotificationSettingsStore) return;
 
     try {
         const mentionCount = GuildReadStateStore.getTotalMentionCount();

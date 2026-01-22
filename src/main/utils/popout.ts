@@ -53,6 +53,7 @@ const DEFAULT_POPOUT_OPTIONS: BrowserWindowConstructorOptions = {
     autoHideMenuBar: Settings.store.enableMenu
 };
 
+const MAX_POPOUTS = 50;
 export const PopoutWindows = new Map<string, BrowserWindow>();
 
 function focusWindow(window: BrowserWindow) {
@@ -89,6 +90,11 @@ export function createOrFocusPopup(key: string, features: string) {
         return <const>{ action: "deny" };
     }
 
+    if (PopoutWindows.size >= MAX_POPOUTS) {
+        console.warn("Max popout windows reached, refusing to create more");
+        return <const>{ action: "deny" };
+    }
+
     return <const>{
         action: "allow",
         overrideBrowserWindowOptions: {
@@ -110,7 +116,7 @@ export function setupPopout(win: BrowserWindow, key: string) {
     win.webContents.setWindowOpenHandler(({ url }) => handleExternalUrl(url));
 
     win.once("closed", () => {
-        win.removeAllListeners();
         PopoutWindows.delete(key);
+        win.removeAllListeners();
     });
 }

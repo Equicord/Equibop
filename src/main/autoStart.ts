@@ -27,7 +27,8 @@ function getEscapedCommandLine() {
 }
 
 function makeAutoStartLinuxDesktop(): AutoStart {
-    const configDir = process.env.XDG_CONFIG_HOME || join(process.env.HOME!, ".config");
+    const home = process.env.HOME ?? app.getPath("home");
+    const configDir = process.env.XDG_CONFIG_HOME || join(home, ".config");
     const dir = join(configDir, "autostart");
     const file = join(dir, "equibop.desktop");
 

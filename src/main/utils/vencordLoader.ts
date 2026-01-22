@@ -13,6 +13,8 @@ import { downloadFile, fetchie } from "./http";
 
 const API_BASE = "https://api.github.com";
 
+let downloadInProgress: Promise<void> | null = null;
+
 export interface ReleaseData {
     name: string;
     tag_name: string;
@@ -37,12 +39,18 @@ export async function githubGet(endpoint: string) {
 }
 
 export async function downloadVencordAsar() {
-    await downloadFile(
+    if (downloadInProgress) return downloadInProgress;
+
+    downloadInProgress = downloadFile(
         "https://github.com/Equicord/Equicord/releases/latest/download/equibop.asar",
         VENCORD_DIR,
         {},
         { retryOnNetworkError: true }
-    );
+    ).finally(() => {
+        downloadInProgress = null;
+    });
+
+    return downloadInProgress;
 }
 
 export function isValidVencordInstall(dir: string) {
