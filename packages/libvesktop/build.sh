@@ -1,4 +1,5 @@
 #!/bin/sh
+# Made by baltomore-balls on Github looking for a job
 set -e
 
 docker build -t libvesktop-builder -f Dockerfile .
