@@ -7,14 +7,15 @@
 import { BrowserWindow, nativeTheme } from "electron";
 import { join } from "path";
 import { SplashProps } from "shared/browserWinProperties";
-import { STATIC_DIR } from "shared/paths";
+import { IpcEvents } from "shared/IpcEvents";
 
 import { DATA_DIR } from "./constants";
 import { Settings } from "./settings";
 import { fileExistsAsync } from "./utils/fileExists";
+import { getWindowIcon } from "./utils/windowOptions";
+import { loadView } from "./vesktopStatic";
 
 export let splash: BrowserWindow | undefined;
-import { loadView } from "./vesktopStatic";
 
 const totalTasks = 9;
 let doneTasks = 0;
@@ -22,11 +23,7 @@ let doneTasks = 0;
 export async function createSplashWindow(startMinimized = false) {
     splash = new BrowserWindow({
         ...SplashProps,
-        ...(process.platform === "win32"
-            ? { icon: join(STATIC_DIR, "icon.ico") }
-            : process.platform === "linux"
-              ? { icon: join(STATIC_DIR, "icon.png") }
-              : {}),
+        ...getWindowIcon(),
         show: !startMinimized,
         webPreferences: {
             preload: join(__dirname, "splashPreload.js")
@@ -114,5 +111,5 @@ export function getSplash() {
 }
 
 export function updateSplashMessage(message: string) {
-    if (splash && !splash.isDestroyed()) splash.webContents.send("update-splash-message", message);
+    if (splash && !splash.isDestroyed()) splash.webContents.send(IpcEvents.UPDATE_SPLASH_MESSAGE, message);
 }

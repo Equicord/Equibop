@@ -7,11 +7,11 @@
 import { Logger } from "@equicord/types/utils";
 import { currentSettings } from "renderer/components/ScreenSharePicker";
 import { State } from "renderer/settings";
-import { isLinux } from "renderer/utils";
+import { IS_LINUX } from "renderer/utils";
 
 const logger = new Logger("EquibopStreamFixes");
 
-if (isLinux) {
+if (IS_LINUX) {
     const original = navigator.mediaDevices.getDisplayMedia;
 
     async function getVirtmic() {

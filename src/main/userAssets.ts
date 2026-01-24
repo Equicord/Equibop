@@ -76,7 +76,7 @@ export async function handleVesktopAssetsProtocol(path: string, req: Request) {
 
 handle(IpcEvents.CHOOSE_USER_ASSET, async (_event, asset: UserAssetType, value?: null) => {
     if (!CUSTOMIZABLE_ASSETS.includes(asset)) {
-        throw `Invalid asset: ${asset}`;
+        throw new Error(`Invalid asset: ${asset}`);
     }
 
     const assetPath = join(UserAssetFolder, asset);

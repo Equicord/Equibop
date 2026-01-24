@@ -16,22 +16,37 @@ type SpellCheckerResultCallback = (word: string, suggestions: string[]) => void;
 
 const spellCheckCallbacks = new Set<SpellCheckerResultCallback>();
 
-ipcRenderer.on(IpcEvents.SPELLCHECK_RESULT, (_, w: string, s: string[]) => {
+const spellCheckListener = (_: Electron.IpcRendererEvent, w: string, s: string[]) => {
     spellCheckCallbacks.forEach(cb => cb(w, s));
-});
+};
+ipcRenderer.on(IpcEvents.SPELLCHECK_RESULT, spellCheckListener);
 
-type ArRPCActivityCallback = (data: any) => void;
+type ArRPCActivityCallback = (data: unknown) => void;
 const arrpcActivityCallbacks = new Set<ArRPCActivityCallback>();
 
-ipcRenderer.on(IpcEvents.ARRPC_ACTIVITY, (_, data: any) => {
+const arrpcActivityListener = (_: Electron.IpcRendererEvent, data: unknown) => {
     arrpcActivityCallbacks.forEach(cb => cb(data));
-});
+};
+ipcRenderer.on(IpcEvents.ARRPC_ACTIVITY, arrpcActivityListener);
 
 let onDevtoolsOpen = () => {};
 let onDevtoolsClose = () => {};
 
-ipcRenderer.on(IpcEvents.DEVTOOLS_OPENED, () => onDevtoolsOpen());
-ipcRenderer.on(IpcEvents.DEVTOOLS_CLOSED, () => onDevtoolsClose());
+const devtoolsOpenedListener = () => onDevtoolsOpen();
+const devtoolsClosedListener = () => onDevtoolsClose();
+ipcRenderer.on(IpcEvents.DEVTOOLS_OPENED, devtoolsOpenedListener);
+ipcRenderer.on(IpcEvents.DEVTOOLS_CLOSED, devtoolsClosedListener);
+
+function cleanup() {
+    ipcRenderer.off(IpcEvents.SPELLCHECK_RESULT, spellCheckListener);
+    ipcRenderer.off(IpcEvents.ARRPC_ACTIVITY, arrpcActivityListener);
+    ipcRenderer.off(IpcEvents.DEVTOOLS_OPENED, devtoolsOpenedListener);
+    ipcRenderer.off(IpcEvents.DEVTOOLS_CLOSED, devtoolsClosedListener);
+    spellCheckCallbacks.clear();
+    arrpcActivityCallbacks.clear();
+}
+
+window.addEventListener("beforeunload", cleanup);
 
 export const VesktopNative = {
     app: {
@@ -52,9 +67,11 @@ export const VesktopNative = {
             }>(IpcEvents.GET_PLATFORM_SPOOF_INFO),
         getRendererCss: () => invoke<string>(IpcEvents.GET_VESKTOP_RENDERER_CSS),
         onRendererCssUpdate: (cb: (newCss: string) => void) => {
-            if (!IS_DEV) return;
+            if (!IS_DEV) return () => {};
 
-            ipcRenderer.on(IpcEvents.VESKTOP_RENDERER_CSS_UPDATE, (_e, newCss: string) => cb(newCss));
+            const listener = (_e: Electron.IpcRendererEvent, newCss: string) => cb(newCss);
+            ipcRenderer.on(IpcEvents.VESKTOP_RENDERER_CSS_UPDATE, listener);
+            return () => ipcRenderer.off(IpcEvents.VESKTOP_RENDERER_CSS_UPDATE, listener);
         }
     },
     autostart: {
@@ -127,11 +144,15 @@ export const VesktopNative = {
         setVoiceCallState: (inCall: boolean) => invoke<void>(IpcEvents.VOICE_CALL_STATE_CHANGED, inCall)
     },
     voice: {
-        onToggleSelfMute: (listener: (...args: any[]) => void) => {
-            ipcRenderer.on(IpcEvents.TOGGLE_SELF_MUTE, listener);
+        onToggleSelfMute: (listener: () => void) => {
+            const wrappedListener = () => listener();
+            ipcRenderer.on(IpcEvents.TOGGLE_SELF_MUTE, wrappedListener);
+            return () => ipcRenderer.off(IpcEvents.TOGGLE_SELF_MUTE, wrappedListener);
         },
-        onToggleSelfDeaf: (listener: (...args: any[]) => void) => {
-            ipcRenderer.on(IpcEvents.TOGGLE_SELF_DEAF, listener);
+        onToggleSelfDeaf: (listener: () => void) => {
+            const wrappedListener = () => listener();
+            ipcRenderer.on(IpcEvents.TOGGLE_SELF_DEAF, wrappedListener);
+            return () => ipcRenderer.off(IpcEvents.TOGGLE_SELF_DEAF, wrappedListener);
         }
     },
     debug: {
@@ -140,7 +161,9 @@ export const VesktopNative = {
     },
     commands: {
         onCommand(cb: (message: IpcMessage) => void) {
-            ipcRenderer.on(IpcEvents.IPC_COMMAND, (_, message) => cb(message));
+            const listener = (_: Electron.IpcRendererEvent, message: IpcMessage) => cb(message);
+            ipcRenderer.on(IpcEvents.IPC_COMMAND, listener);
+            return () => ipcRenderer.off(IpcEvents.IPC_COMMAND, listener);
         },
         respond: (response: IpcResponse) => ipcRenderer.send(IpcEvents.IPC_COMMAND, response)
     }

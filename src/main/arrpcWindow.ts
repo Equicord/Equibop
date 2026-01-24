@@ -5,16 +5,16 @@
  */
 
 import { BrowserWindow } from "electron";
-import { join } from "path";
-import { STATIC_DIR } from "shared/paths";
 
 import { getArRPCStatus, restartArRPC } from "./arrpc";
 import { Settings } from "./settings";
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
+import { getWindowIcon } from "./utils/windowOptions";
 import { loadView } from "./vesktopStatic";
 
 let arrpcWindow: BrowserWindow | null = null;
 let statusInterval: NodeJS.Timeout | null = null;
+let lastStatusJson: string | null = null;
 
 export function createArRPCWindow() {
     if (arrpcWindow && !arrpcWindow.isDestroyed()) {
@@ -22,14 +22,15 @@ export function createArRPCWindow() {
         return arrpcWindow;
     }
 
+    if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
+    }
+
     arrpcWindow = new BrowserWindow({
         center: true,
         autoHideMenuBar: true,
-        ...(process.platform === "win32"
-            ? { icon: join(STATIC_DIR, "icon.ico") }
-            : process.platform === "linux"
-              ? { icon: join(STATIC_DIR, "icon.png") }
-              : {}),
+        ...getWindowIcon(),
         height: 450,
         width: 500,
         resizable: false
@@ -54,11 +55,13 @@ export function createArRPCWindow() {
     loadView(arrpcWindow, "arrpc.html", data);
 
     statusInterval = setInterval(() => {
-        if (arrpcWindow && !arrpcWindow.isDestroyed()) {
-            const currentStatus = getArRPCStatus();
-            arrpcWindow.webContents.executeJavaScript(
-                `window.updateStatus && window.updateStatus(${JSON.stringify(currentStatus)})`
-            );
+        if (!statusInterval || !arrpcWindow || arrpcWindow.isDestroyed()) return;
+
+        const currentStatus = getArRPCStatus();
+        const statusJson = JSON.stringify(currentStatus);
+        if (statusJson !== lastStatusJson) {
+            lastStatusJson = statusJson;
+            arrpcWindow.webContents.executeJavaScript(`window.updateStatus && window.updateStatus(${statusJson})`);
         }
     }, 2000);
 
@@ -70,7 +73,7 @@ export function createArRPCWindow() {
         }
 
         if (msg === "restart") {
-            restartArRPC();
+            restartArRPC().catch(e => console.error("Failed to restart arRPC:", e));
             return;
         }
 
@@ -108,6 +111,7 @@ export function createArRPCWindow() {
             clearInterval(statusInterval);
             statusInterval = null;
         }
+        lastStatusJson = null;
         arrpcWindow = null;
     });
 

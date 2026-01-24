@@ -27,7 +27,7 @@ import { createAboutWindow } from "./about";
 import { destroyAppBadge } from "./appBadge";
 import { cleanupArRPC, initArRPC, setupArRPC } from "./arrpc";
 import { CommandLine } from "./cli";
-import { BrowserUserAgent, DEFAULT_HEIGHT, DEFAULT_WIDTH, isLinux, MIN_HEIGHT, MIN_WIDTH } from "./constants";
+import { BrowserUserAgent, DEFAULT_HEIGHT, DEFAULT_WIDTH, IS_LINUX, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { AppEvents } from "./events";
 import { spoofGnu } from "./gnuSpoofing";
 import { darwinURL } from "./index";
@@ -48,6 +48,7 @@ applyDeckKeyboardFix();
 
 app.on("before-quit", async () => {
     isQuitting = true;
+    clearRetryTimeout();
     destroyTray();
     destroyAppBadge();
     await cleanupArRPC();
@@ -223,15 +224,17 @@ function initSettingsListeners(win: BrowserWindow) {
         }
     });
 
-    addVencordSettingsListener("macosTranslucency", enabled => {
-        if (enabled) {
-            win.setVibrancy("sidebar");
-            win.setBackgroundColor("#ffffff00");
-        } else {
-            win.setVibrancy(null);
-            win.setBackgroundColor("#ffffff");
-        }
-    });
+    if (process.platform === "darwin") {
+        addVencordSettingsListener("macosTranslucency", enabled => {
+            if (enabled) {
+                win.setVibrancy("sidebar");
+                win.setBackgroundColor("#ffffff00");
+            } else {
+                win.setVibrancy(null);
+                win.setBackgroundColor("#ffffff");
+            }
+        });
+    }
 
     addSettingsListener("enableMenu", enabled => {
         win.setAutoHideMenuBar(enabled ?? false);
@@ -447,9 +450,11 @@ function createMainWindow() {
 
 const runVencordMain = once(() => require(VENCORD_DIR));
 
+const SUBDOMAIN_BRANCHES: string[] = ["canary", "ptb"];
+
 export function loadUrl(uri: string | undefined) {
-    const branch = Settings.store.discordBranch;
-    const subdomain = branch === "canary" || branch === "ptb" ? `${branch}.` : "";
+    const branch = Settings.store.discordBranch ?? "stable";
+    const subdomain = SUBDOMAIN_BRANCHES.includes(branch) ? `${branch}.` : "";
 
     // we do not rely on 'did-finish-load' because it fires even if loadURL fails which triggers early detruction of the splash
     mainWin
@@ -459,10 +464,23 @@ export function loadUrl(uri: string | undefined) {
 }
 
 const retryDelay = 1000;
+let retryTimeout: NodeJS.Timeout | null = null;
+
+export function clearRetryTimeout() {
+    if (retryTimeout) {
+        clearTimeout(retryTimeout);
+        retryTimeout = null;
+    }
+}
+
 function retryUrl(url: string, description: string) {
     console.log(`retrying in ${retryDelay}ms`);
     updateSplashMessage(`Failed to load Discord: ${description}`);
-    setTimeout(() => loadUrl(url), retryDelay);
+    clearRetryTimeout();
+    retryTimeout = setTimeout(() => {
+        retryTimeout = null;
+        loadUrl(url);
+    }, retryDelay);
 }
 
 export async function createWindows() {
@@ -484,11 +502,13 @@ export async function createWindows() {
     addSplashLog();
     mainWin = createMainWindow();
 
-    AppEvents.on("appLoaded", () => {
+    AppEvents.once("appLoaded", () => {
+        const hadSplash = splash != null;
         splash?.destroy();
+        splash = undefined;
 
         if (!startMinimized) {
-            if (splash) mainWin?.show();
+            if (hadSplash) mainWin?.show();
             if (State.store.maximized && !isDeckGameMode) mainWin?.maximize();
         }
 
@@ -518,5 +538,5 @@ export async function createWindows() {
 
     setupArRPC();
     initArRPC();
-    if (isLinux) initKeybinds();
+    if (IS_LINUX) initKeybinds();
 }

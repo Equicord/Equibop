@@ -10,7 +10,7 @@ import { classNameFactory } from "@equicord/types/api/Styles";
 import { BaseText, Divider, ErrorBoundary } from "@equicord/types/components";
 import { ComponentType } from "react";
 import { Settings, useSettings } from "renderer/settings";
-import { isMac, isWindows } from "renderer/utils";
+import { IS_MAC, IS_WINDOWS } from "renderer/utils";
 
 import { ArRPCSettingsButton } from "./ArRPCSettings";
 import { AutoStartToggle } from "./AutoStartToggle";
@@ -60,7 +60,7 @@ const SettingsOptions: Record<string, Array<BooleanSetting | SettingsComponent>>
             key: "customTitleBar",
             title: "Discord Titlebar",
             description: "Use Discord's custom title bar instead of the native system one. Requires a full restart.",
-            defaultValue: isWindows
+            defaultValue: IS_WINDOWS
         },
         {
             key: "staticTitle",
@@ -73,7 +73,7 @@ const SettingsOptions: Record<string, Array<BooleanSetting | SettingsComponent>>
             title: "Enable Menu Bar",
             description: "Enables the application menu bar. Press ALT to toggle visibility.",
             defaultValue: false,
-            disabled: () => Settings.store.customTitleBar ?? isWindows
+            disabled: () => Settings.store.customTitleBar ?? IS_WINDOWS
         },
         {
             key: "enableSplashScreen",
@@ -103,14 +103,14 @@ const SettingsOptions: Record<string, Array<BooleanSetting | SettingsComponent>>
             title: "Tray Icon",
             description: "Add a tray icon for Equibop",
             defaultValue: true,
-            invisible: () => isMac
+            invisible: () => IS_MAC
         },
         {
             key: "minimizeToTray",
             title: "Minimize to tray",
             description: "Hitting X will make Equibop minimize to the tray instead of closing",
             defaultValue: true,
-            invisible: () => isMac,
+            invisible: () => IS_MAC,
             disabled: () => Settings.store.tray === false
         },
         {

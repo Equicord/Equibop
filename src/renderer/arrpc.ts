@@ -120,9 +120,9 @@ async function handleActivityEvent(data: ActivityEvent) {
 }
 
 // Listen for activity events from main process
-VesktopNative.arrpc.onActivity(async (data: ActivityEvent) => {
+VesktopNative.arrpc.onActivity(async data => {
     await onceReady;
-    handleActivityEvent(data);
+    handleActivityEvent(data as ActivityEvent);
 });
 
 logger.info("arRPC bridge initialized (main process handles connection)");

@@ -11,9 +11,10 @@ import { dirname, join } from "path";
 import { CommandLine } from "./cli";
 
 const equibopDir = dirname(process.execPath);
+const isWin32 = process.platform === "win32";
 
 export const PORTABLE =
-    process.platform === "win32" &&
+    isWin32 &&
     !process.execPath.toLowerCase().endsWith("electron.exe") &&
     !existsSync(join(equibopDir, "Uninstall Equibop.exe"));
 
@@ -49,8 +50,8 @@ const BrowserUserAgents = {
 };
 
 export const BrowserUserAgent =
-    CommandLine.values["user-agent"] ||
-    BrowserUserAgents[CommandLine.values["user-agent-os"] || process.platform] ||
+    CommandLine.values["user-agent"] ??
+    BrowserUserAgents[CommandLine.values["user-agent-os"] ?? process.platform] ??
     BrowserUserAgents.windows;
 
 export const enum MessageBoxChoice {
@@ -58,7 +59,9 @@ export const enum MessageBoxChoice {
     Cancel
 }
 
+export const IS_WINDOWS = process.platform === "win32";
+export const IS_MAC = process.platform === "darwin";
+export const IS_LINUX = process.platform === "linux";
 export const IS_FLATPAK = process.env.FLATPAK_ID !== undefined;
-export const isWayland =
-    process.platform === "linux" && (process.env.XDG_SESSION_TYPE === "wayland" || !!process.env.WAYLAND_DISPLAY);
-export const isLinux = process.platform === "linux";
+export const IS_WAYLAND =
+    IS_LINUX && (process.env.XDG_SESSION_TYPE === "wayland" || Boolean(process.env.WAYLAND_DISPLAY));

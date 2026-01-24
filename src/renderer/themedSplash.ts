@@ -74,7 +74,7 @@ const updateSplashColors = () => {
 if (document.readyState === "complete") {
     updateSplashColors();
 } else {
-    window.addEventListener("load", updateSplashColors);
+    window.addEventListener("load", updateSplashColors, { once: true });
 }
 
-window.addEventListener("beforeunload", updateSplashColors);
+window.addEventListener("beforeunload", updateSplashColors, { once: true });

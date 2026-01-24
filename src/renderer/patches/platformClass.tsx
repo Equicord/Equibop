@@ -5,7 +5,7 @@
  */
 
 import { Settings } from "renderer/settings";
-import { isMac } from "renderer/utils";
+import { IS_MAC } from "renderer/utils";
 
 import { addPatch } from "./shared";
 
@@ -22,7 +22,7 @@ addPatch({
 
     getPlatformClass() {
         if (Settings.store.customTitleBar) return "platform-win";
-        if (isMac) return "platform-osx";
+        if (IS_MAC) return "platform-osx";
         return "platform-web";
     }
 });

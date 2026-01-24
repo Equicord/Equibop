@@ -16,6 +16,6 @@ export const isFirstRun = (() => {
 
 const { platform } = navigator;
 
-export const isWindows = platform.startsWith("Win");
-export const isMac = platform.startsWith("Mac");
-export const isLinux = platform.startsWith("Linux");
+export const IS_WINDOWS = platform.startsWith("Win");
+export const IS_MAC = platform.startsWith("Mac");
+export const IS_LINUX = platform.startsWith("Linux");

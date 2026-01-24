@@ -36,7 +36,7 @@ import { Node } from "@vencord/venmic";
 import type { Dispatch, SetStateAction } from "react";
 import { addPatch } from "renderer/patches/shared";
 import { State, useSettings, useVesktopState } from "renderer/settings";
-import { isLinux, isWindows } from "renderer/utils";
+import { IS_LINUX, IS_WINDOWS } from "renderer/utils";
 
 import { SimpleErrorBoundary } from "./SimpleErrorBoundary";
 
@@ -122,7 +122,7 @@ addPatch({
 
 let streamCloseCallback: ((data: any) => void) | null = null;
 
-if (isLinux) {
+if (IS_LINUX) {
     onceReady.then(() => {
         streamCloseCallback = ({ streamKey }: { streamKey: string }) => {
             const owner = streamKey.split(":").at(-1);
@@ -388,7 +388,7 @@ function StreamSettingsUi({
         <div>
             <HeadingTertiary className={Margins.bottom8}>What you're streaming</HeadingTertiary>
             <Card className={cl("card", "preview")}>
-                <img src={thumb} alt="" className={cl(isLinux ? "preview-img-linux" : "preview-img")} />
+                <img src={thumb} alt="" className={cl(IS_LINUX ? "preview-img-linux" : "preview-img")} />
                 <Paragraph>{source.name}</Paragraph>
             </Card>
 
@@ -433,7 +433,7 @@ function StreamSettingsUi({
                                 a much sharper and clearer image.
                             </Paragraph>
                         </div>
-                        {isWindows && (
+                        {IS_WINDOWS && (
                             <FormSwitch
                                 title="Stream With Audio"
                                 hideBorder
@@ -445,7 +445,7 @@ function StreamSettingsUi({
                     </section>
                 </div>
 
-                {isLinux && (
+                {IS_LINUX && (
                     <AudioSourcePickerLinux
                         openSettings={openSettings}
                         includeSources={settings.includeSources}
@@ -776,13 +776,14 @@ function ModalComponent({
                                 ...settings
                             });
 
-                            setTimeout(async () => {
+                            const applyStreamConstraints = async () => {
                                 const conn = [...MediaEngineStore.getMediaEngine().connections].find(
                                     connection => connection.streamUserId === UserStore.getCurrentUser().id
                                 );
                                 if (!conn) return;
 
-                                const track = conn.input.stream.getVideoTracks()[0];
+                                const track = conn.input.stream?.getVideoTracks()[0];
+                                if (!track) return;
 
                                 const constraints = {
                                     ...track.getConstraints(),
@@ -803,7 +804,9 @@ function ModalComponent({
                                 } catch (e) {
                                     logger.error("Failed to apply constraints.", e);
                                 }
-                            }, 100);
+                            };
+
+                            setTimeout(applyStreamConstraints, 100);
                         } catch (error) {
                             logger.error("Error while submitting stream.", error);
                         }

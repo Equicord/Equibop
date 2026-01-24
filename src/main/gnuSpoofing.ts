@@ -139,14 +139,22 @@ export async function spoofGnu(window: BrowserWindow) {
         }
     };
 
-    window.webContents.debugger.on("detach", (_e, reason) => {
+    const onDetach = (_e: Electron.Event, reason: string) => {
         console.info(`Debugger detached: ${reason}`);
-    });
+    };
 
     // https://www.electronjs.org/docs/latest/api/web-contents#event-did-navigate
-    window.webContents.on("did-navigate", async () => {
+    const onNavigate = async () => {
         console.log("Navigation detected, re-running spoof");
         await runSpoof();
+    };
+
+    window.webContents.debugger.on("detach", onDetach);
+    window.webContents.on("did-navigate", onNavigate);
+
+    window.once("closed", () => {
+        window.webContents.debugger.off("detach", onDetach);
+        window.webContents.off("did-navigate", onNavigate);
     });
 
     await runSpoof();

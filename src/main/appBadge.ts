@@ -12,10 +12,17 @@ import { updateUnityLauncherCount } from "./dbus";
 import { AppEvents } from "./events";
 import { mainWin } from "./mainWindow";
 
+const BADGE_CACHE_MAX = 12;
 const imgCache = new Map<number, NativeImage>();
+
 function loadBadge(index: number) {
     const cached = imgCache.get(index);
     if (cached) return cached;
+
+    if (imgCache.size >= BADGE_CACHE_MAX) {
+        const firstKey = imgCache.keys().next().value;
+        if (firstKey != null) imgCache.delete(firstKey);
+    }
 
     const img = nativeImage.createFromPath(join(BADGE_DIR, `${index}.ico`));
     imgCache.set(index, img);
@@ -55,10 +62,10 @@ export function setBadgeCount(count: number) {
             break;
         case "darwin":
             if (count === 0) {
-                app.dock!.setBadge("");
+                app.dock?.setBadge("");
                 break;
             }
-            app.dock!.setBadge(count === -1 ? "•" : count.toString());
+            app.dock?.setBadge(count === -1 ? "•" : count.toString());
             break;
         case "win32": {
             const [index, description] = getBadgeIndexAndDescription(count);

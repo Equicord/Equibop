@@ -9,13 +9,13 @@ import { BrowserWindow } from "electron/main";
 import { copyFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
 import { SplashProps } from "shared/browserWinProperties";
-import { STATIC_DIR } from "shared/paths";
 
 import { autoStart } from "./autoStart";
 import { DATA_DIR } from "./constants";
 import { createWindows } from "./mainWindow";
 import { Settings, State } from "./settings";
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
+import { getWindowIcon } from "./utils/windowOptions";
 import { loadView } from "./vesktopStatic";
 
 interface Data {
@@ -32,11 +32,7 @@ export function createFirstLaunchTour() {
         transparent: false,
         frame: true,
         autoHideMenuBar: true,
-        ...(process.platform === "win32"
-            ? { icon: join(STATIC_DIR, "icon.ico") }
-            : process.platform === "linux"
-              ? { icon: join(STATIC_DIR, "icon.png") }
-              : {}),
+        ...getWindowIcon(),
         height: 550,
         width: 600
     });
@@ -44,11 +40,23 @@ export function createFirstLaunchTour() {
     makeLinksOpenExternally(win);
 
     loadView(win, "first-launch.html");
-    win.webContents.addListener("console-message", (_e, _l, msg) => {
-        if (msg === "cancel") return app.exit();
+    const listener = (_e: Electron.Event, _l: number, msg: string) => {
+        if (msg === "cancel") {
+            win.webContents.removeListener("console-message", listener);
+            return app.exit();
+        }
 
         if (!msg.startsWith("form:")) return;
-        const data = JSON.parse(msg.slice(5)) as Data;
+
+        win.webContents.removeListener("console-message", listener);
+
+        let data: Data;
+        try {
+            data = JSON.parse(msg.slice(5)) as Data;
+        } catch (e) {
+            console.error("Failed to parse first launch form data:", e);
+            return;
+        }
 
         State.store.firstLaunch = false;
         Settings.store.discordBranch = data.discordBranch;
@@ -79,5 +87,6 @@ export function createFirstLaunchTour() {
         win.close();
 
         createWindows();
-    });
+    };
+    win.webContents.addListener("console-message", listener);
 }

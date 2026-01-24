@@ -44,7 +44,9 @@ export async function fetchie(url: string, options?: RequestInit, { retryOnNetwo
                 try {
                     res = await fetch(url, options);
                     break;
-                } catch {}
+                } catch (retryErr) {
+                    console.error(`Retry ${tries + 1}/20 failed for ${url}:`, retryErr);
+                }
             }
         }
 

@@ -6,6 +6,7 @@
 
 import { spawnSync } from "node:child_process";
 import { constants, existsSync, open, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { Socket } from "net";
@@ -13,7 +14,7 @@ import { IpcEvents } from "shared/IpcEvents";
 
 import { mainWin } from "./mainWindow";
 
-const xdgRuntimeDir = process.env.XDG_RUNTIME_DIR || process.env.TMP || "/tmp";
+const xdgRuntimeDir = process.env.XDG_RUNTIME_DIR || tmpdir();
 const socketFile = join(xdgRuntimeDir, "vesktop-ipc");
 
 const Actions = new Set([IpcEvents.TOGGLE_SELF_DEAF, IpcEvents.TOGGLE_SELF_MUTE]);
@@ -48,9 +49,14 @@ function openFIFO() {
             const pipe = new Socket({ fd });
             pipe.on("data", data => {
                 const action = data.toString().trim();
-                if (Actions.has(action as IpcEvents)) {
+                if (Actions.has(action as IpcEvents) && mainWin && !mainWin.isDestroyed()) {
                     mainWin.webContents.send(action);
                 }
+            });
+
+            pipe.on("error", err => {
+                console.error("Keybinds pipe error:", err);
+                pipe.destroy();
             });
 
             pipe.on("end", () => {
@@ -66,12 +72,14 @@ function openFIFO() {
 function cleanup() {
     try {
         unlinkSync(socketFile);
-    } catch (err) {}
+    } catch {}
 }
 
 process.on("exit", cleanup);
 
 export function initKeybinds() {
+    if (process.platform !== "linux") return;
+
     if (createFIFO()) {
         openFIFO();
     }
