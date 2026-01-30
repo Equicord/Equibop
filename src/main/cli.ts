@@ -65,6 +65,10 @@ const options = {
     "is-in-call": {
         type: "boolean",
         description: "Check if you are currently in a voice call"
+    },
+    "get-voice-channel-name": {
+        type: "boolean",
+        description: "Get the name of the voice channel you are in"
     }
 } satisfies Record<string, Option>;
 
@@ -178,11 +182,11 @@ function checkCommandLineForToggleCommands() {
 }
 
 function checkCommandLineForQueryCommands() {
-    const { "is-in-call": isInCall } = CommandLine.values;
+    const { "is-in-call": isInCall, "get-voice-channel-name": getVoiceChannelName } = CommandLine.values;
 
-    if (!isInCall) return false;
+    if (!isInCall && !getVoiceChannelName) return false;
 
-    const query = IpcCommands.QUERY_IS_IN_CALL;
+    const query = isInCall ? IpcCommands.QUERY_IS_IN_CALL : IpcCommands.QUERY_VOICE_CHANNEL_NAME;
     const responseFile = join(tmpdir(), `equibop-query-${Date.now()}-${process.pid}.tmp`);
 
     if (!app.requestSingleInstanceLock({ IS_DEV, query, responseFile })) {

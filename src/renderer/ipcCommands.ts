@@ -68,3 +68,55 @@ onIpcCommand(IpcCommands.QUERY_IS_IN_CALL, () => {
         return "false";
     }
 });
+
+onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
+    try {
+        const VoiceStateStore = Vencord.Webpack.findStore("VoiceStateStore");
+        const UserStore = Vencord.Webpack.findStore("UserStore");
+        const ChannelStore = Vencord.Webpack.findStore("ChannelStore");
+
+        const currentUser = UserStore.getCurrentUser();
+        if (!currentUser?.id)
+            return "Not in call";
+
+        const voiceState = VoiceStateStore.getVoiceStateForUser(currentUser.id);
+        if (!voiceState?.channelId)
+            return "Not in call";
+
+        const channel = ChannelStore.getChannel(voiceState.channelId);
+        if (!channel)
+            return "Not in call";
+
+        // Guild voice channel - use channel name
+        if (channel.guild_id)
+            return channel.name;
+
+        // DM call - show the other user's name
+        if (channel.type === 1) {
+            const recipientId = channel.recipients?.find((id: string) => id !== currentUser.id);
+            if (recipientId) {
+                const recipient = UserStore.getUser(recipientId);
+                if (recipient) return recipient.globalName || recipient.username;
+            }
+            return channel.name || "DM Call";
+        }
+
+        // Group DM call - use the group name or fallback to recipient names
+        if (channel.type === 3) {
+            if (channel.name) return channel.name;
+
+            const names = channel.recipients
+                ?.map((id: string) => {
+                    const user = UserStore.getUser(id);
+                    return user?.globalName || user?.username;
+                })
+                .filter(Boolean);
+
+            return names?.length ? names.join(", ") : "Group Call";
+        }
+
+        return channel.name || "Not in call";
+    } catch {
+        return "Not in call";
+    }
+});
