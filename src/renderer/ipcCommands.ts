@@ -52,3 +52,19 @@ onIpcCommand(IpcCommands.NAVIGATE_SETTINGS, () => {
 onIpcCommand(IpcCommands.GET_LANGUAGES, () => navigator.languages);
 
 onIpcCommand(IpcCommands.SCREEN_SHARE_PICKER, data => openScreenSharePicker(data.screens, data.skipPicker));
+
+onIpcCommand(IpcCommands.QUERY_IS_IN_CALL, () => {
+    try {
+        const VoiceStateStore = Vencord.Webpack.findStore("VoiceStateStore");
+        const UserStore = Vencord.Webpack.findStore("UserStore");
+
+        const currentUserId = UserStore.getCurrentUser()?.id;
+        if (!currentUserId)
+            return "false";
+
+        const voiceState = VoiceStateStore.getVoiceStateForUser(currentUserId);
+        return voiceState?.channelId ? "true" : "false";
+    } catch {
+        return "false";
+    }
+});

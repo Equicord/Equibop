@@ -4,9 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { readFileSync, unlinkSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { basename, join } from "path";
+
 import { app } from "electron";
-import { basename } from "path";
-import { IpcEvents } from "shared/IpcEvents";
+import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
 import { parseArgs, ParseArgsOptionDescriptor } from "util";
 
@@ -58,6 +61,10 @@ const options = {
         type: "boolean",
         hidden: process.platform !== "linux",
         description: "Toggle your deafen status"
+    },
+    "is-in-call": {
+        type: "boolean",
+        description: "Check if you are currently in a voice call"
     }
 } satisfies Record<string, Option>;
 
@@ -170,10 +177,60 @@ function checkCommandLineForToggleCommands() {
     app.exit(1);
 }
 
+function checkCommandLineForQueryCommands() {
+    const { "is-in-call": isInCall } = CommandLine.values;
+
+    if (!isInCall) return false;
+
+    const query = IpcCommands.QUERY_IS_IN_CALL;
+    const responseFile = join(tmpdir(), `equibop-query-${Date.now()}-${process.pid}.tmp`);
+
+    if (!app.requestSingleInstanceLock({ IS_DEV, query, responseFile })) {
+        // First instance is running and will handle the query.
+        // Poll for the response file.
+        const startTime = Date.now();
+        const timeout = 10000;
+        const interval = setInterval(() => {
+            try {
+                const result = readFileSync(responseFile, "utf-8");
+                clearInterval(interval);
+                try {
+                    unlinkSync(responseFile);
+                } catch {}
+                console.log(result);
+                app.exit(0);
+            } catch {
+                if (Date.now() - startTime > timeout) {
+                    clearInterval(interval);
+                    console.error("Timed out waiting for response from running instance.");
+                    app.exit(1);
+                }
+            }
+        }, 50);
+        return true;
+    }
+
+    console.error("Equibop is not running. Query commands require a running instance.");
+    app.exit(1);
+}
+
 function setupSecondInstanceHandler() {
     app.on("second-instance", (_event, commandLine, _cwd, data: any) => {
         if (data.IS_DEV) {
             app.quit();
+            return;
+        }
+
+        if (data.query && data.responseFile) {
+            import("./ipcCommands").then(({ sendRendererCommand }) => {
+                sendRendererCommand<string>(data.query)
+                    .then(result => {
+                        writeFileSync(data.responseFile, String(result));
+                    })
+                    .catch(err => {
+                        writeFileSync(data.responseFile, `Error: ${err}`);
+                    });
+            });
             return;
         }
 
@@ -202,6 +259,7 @@ function setupSecondInstanceHandler() {
 
 function checkForSecondInstance() {
     if (checkCommandLineForToggleCommands()) return;
+    if (checkCommandLineForQueryCommands()) return;
 
     if (!app.requestSingleInstanceLock({ IS_DEV })) {
         if (IS_DEV) {
