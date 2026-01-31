@@ -198,8 +198,8 @@ function checkCommandLineForQueryCommands() {
     const responseFile = join(tmpdir(), `equibop-query-${Date.now()}-${process.pid}.tmp`);
 
     if (!app.requestSingleInstanceLock({ IS_DEV, query, responseFile })) {
-        // First instance is running and will handle the query.
-        // Poll for the response file.
+        // The first instance will make a response file for us to use.
+        // Poll for it.
         const startTime = Date.now();
         const timeout = 10000;
         const interval = setInterval(() => {
