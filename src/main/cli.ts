@@ -69,6 +69,10 @@ const options = {
     "get-voice-channel-name": {
         type: "boolean",
         description: "Get the name of the voice channel you are in"
+    },
+    "get-call-duration": {
+        type: "boolean",
+        description: "Get the duration of the current call ([hh]:mm:ss)"
     }
 } satisfies Record<string, Option>;
 
@@ -182,11 +186,15 @@ function checkCommandLineForToggleCommands() {
 }
 
 function checkCommandLineForQueryCommands() {
-    const { "is-in-call": isInCall, "get-voice-channel-name": getVoiceChannelName } = CommandLine.values;
+    const { "is-in-call": isInCall, "get-voice-channel-name": getVoiceChannelName, "get-call-duration": getCallDuration } = CommandLine.values;
 
-    if (!isInCall && !getVoiceChannelName) return false;
+    if (!isInCall && !getVoiceChannelName && !getCallDuration) return false;
 
-    const query = isInCall ? IpcCommands.QUERY_IS_IN_CALL : IpcCommands.QUERY_VOICE_CHANNEL_NAME;
+    const query = isInCall
+        ? IpcCommands.QUERY_IS_IN_CALL
+        : getVoiceChannelName
+            ? IpcCommands.QUERY_VOICE_CHANNEL_NAME
+            : IpcCommands.QUERY_CALL_DURATION;
     const responseFile = join(tmpdir(), `equibop-query-${Date.now()}-${process.pid}.tmp`);
 
     if (!app.requestSingleInstanceLock({ IS_DEV, query, responseFile })) {

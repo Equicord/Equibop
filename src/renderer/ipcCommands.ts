@@ -8,6 +8,7 @@ import { SettingsRouter } from "@equicord/types/webpack/common";
 import { IpcCommands } from "shared/IpcEvents";
 
 import { openScreenSharePicker } from "./components/ScreenSharePicker";
+import { callStartTime } from "./patches/tray";
 
 type IpcCommandHandler = (data: any) => any;
 
@@ -103,7 +104,8 @@ onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
 
         // Group DM call - use the group name or fallback to recipient names
         if (channel.type === 3) {
-            if (channel.name) return channel.name;
+            if (channel.name)
+                return channel.name;
 
             const names = channel.recipients
                 ?.map((id: string) => {
@@ -119,4 +121,24 @@ onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
     } catch {
         return "Not in call";
     }
+});
+
+onIpcCommand(IpcCommands.QUERY_CALL_DURATION, () => {
+    if (callStartTime == null)
+        return "Not in call";
+
+    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+    const hours = Math.floor(elapsed / 3600);
+    const minutes = Math.floor((elapsed % 3600) / 60);
+    const seconds = elapsed % 60;
+
+    const mm = String(minutes).padStart(2, "0");
+    const ss = String(seconds).padStart(2, "0");
+
+    if (hours > 0) {
+        const hh = String(hours).padStart(2, "0");
+        return `${hh}:${mm}:${ss}`;
+    }
+
+    return `${mm}:${ss}`;
 });

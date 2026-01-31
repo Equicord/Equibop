@@ -99,5 +99,6 @@ export const enum IpcCommands {
     SCREEN_SHARE_PICKER = "screenshare:picker",
 
     QUERY_IS_IN_CALL = "query:isInCall",
-    QUERY_VOICE_CHANNEL_NAME = "query:voiceChannelName"
+    QUERY_VOICE_CHANNEL_NAME = "query:voiceChannelName",
+    QUERY_CALL_DURATION = "query:callDuration"
 }
