@@ -95,10 +95,13 @@ onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
         // DM call - show the other user's name
         if (channel.type === 1) {
             const recipientId = channel.recipients?.find((id: string) => id !== currentUser.id);
+            
             if (recipientId) {
                 const recipient = UserStore.getUser(recipientId);
-                if (recipient) return recipient.globalName || recipient.username;
+                if (recipient)
+                    return recipient.globalName || recipient.username;
             }
+
             return channel.name || "DM Call";
         }
 
