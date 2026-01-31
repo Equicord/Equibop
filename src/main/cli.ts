@@ -201,7 +201,7 @@ function checkCommandLineForQueryCommands() {
         // The first instance will make a response file for us to use.
         // Poll for it.
         const startTime = Date.now();
-        const timeout = 10000;
+        const timeout = 5000;
         const interval = setInterval(() => {
             try {
                 const result = readFileSync(responseFile, "utf-8");
