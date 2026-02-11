@@ -49,7 +49,7 @@ async function getCachedTrayImage(variant: TrayVariant): Promise<NativeImage> {
     if (cached) return cached;
 
     const image = nativeImage.createFromPath(path);
-    const resized = image.isEmpty() ? image : image.resize({ width: 32, height: 32, quality: "best" });
+    const resized = image.resize({ width: 32, height: 32 });
     trayImageCache.set(path, resized);
 
     return resized;
@@ -223,12 +223,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                 nativeSNI.setStatusNotifierTitle("Equibop");
 
                 const menuItems = [
-                    {
-                        id: 1,
-                        label: win.isVisible() ? "Hide" : "Open",
-                        enabled: true,
-                        visible: true
-                    },
+                    { id: 1, label: win.isVisible() ? "Hide" : "Open", enabled: true, visible: true },
                     { id: 2, label: "About", enabled: true, visible: true },
                     { id: 3, label: "Repair Equicord", enabled: true, visible: true },
                     { id: 4, label: "Reset Equibop", enabled: true, visible: true },
