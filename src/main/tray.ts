@@ -13,7 +13,7 @@ import { createArgumentsWindow } from "./arguments";
 import { restartArRPC } from "./arrpc";
 import { AppEvents } from "./events";
 import { Settings } from "./settings";
-import { resolveAssetPath, type UserAssetType } from "./userAssets";
+import { resolveAssetPath } from "./userAssets";
 import { clearData } from "./utils/clearData";
 import { downloadVencordAsar } from "./utils/vencordLoader";
 
