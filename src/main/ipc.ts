@@ -85,6 +85,8 @@ handle(IpcEvents.SET_SETTINGS, (_, settings: typeof Settings.store, path?: strin
 });
 
 handle(IpcEvents.RELAUNCH, async () => {
+    setBadgeCount(0);
+
     const options: RelaunchOptions = {
         args: process.argv.slice(1).concat(["--relaunch"])
     };
