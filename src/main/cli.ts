@@ -4,11 +4,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { readFileSync, unlinkSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { basename, join } from "path";
+
 import { app } from "electron";
-import { basename } from "path";
-import { IpcEvents } from "shared/IpcEvents";
+import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
 import { parseArgs, ParseArgsOptionDescriptor } from "util";
+import { sendRendererCommand } from "main/ipcCommands";
 
 type Option = ParseArgsOptionDescriptor & {
     description: string;
@@ -58,6 +62,18 @@ const options = {
         type: "boolean",
         hidden: process.platform !== "linux",
         description: "Toggle your deafen status"
+    },
+    "is-in-call": {
+        type: "boolean",
+        description: "Check if you are currently in a voice call"
+    },
+    "get-voice-channel-name": {
+        type: "boolean",
+        description: "Get the name of the voice channel you are in"
+    },
+    "get-call-duration": {
+        type: "boolean",
+        description: "Get the duration of the current call ([hh]:mm:ss)"
     },
     repair: {
         type: "boolean",
@@ -193,10 +209,62 @@ function checkCommandLineForToggleCommands() {
     app.exit(1);
 }
 
+function checkCommandLineForQueryCommands() {
+    const { "is-in-call": isInCall, "get-voice-channel-name": getVoiceChannelName, "get-call-duration": getCallDuration } = CommandLine.values;
+
+    if (!isInCall && !getVoiceChannelName && !getCallDuration) return false;
+
+    const query = isInCall
+        ? IpcCommands.QUERY_IS_IN_CALL
+        : getVoiceChannelName
+            ? IpcCommands.QUERY_VOICE_CHANNEL_NAME
+            : IpcCommands.QUERY_CALL_DURATION;
+    const responseFile = join(tmpdir(), `equibop-query-${Date.now()}-${process.pid}.tmp`);
+
+    if (!app.requestSingleInstanceLock({ IS_DEV, query, responseFile })) {
+        // The first instance will make a response file for us to use.
+        // Poll for it.
+        const startTime = Date.now();
+        const timeout = 5000;
+        const interval = setInterval(() => {
+            try {
+                const result = readFileSync(responseFile, "utf-8");
+                clearInterval(interval);
+                try {
+                    unlinkSync(responseFile);
+                } catch {}
+                console.log(result);
+                app.exit(0);
+            } catch {
+                if (Date.now() - startTime > timeout) {
+                    clearInterval(interval);
+                    console.error("Timed out waiting for response from running instance.");
+                    app.exit(1);
+                }
+            }
+        }, 50);
+        return true;
+    }
+
+    console.error("Equibop is not running. Query commands require a running instance.");
+    app.exit(1);
+}
+
 function setupSecondInstanceHandler() {
     app.on("second-instance", (_event, commandLine, _cwd, data: any) => {
         if (data.IS_DEV) {
             app.quit();
+            return;
+        }
+
+        if (data.query && data.responseFile) {
+            sendRendererCommand<string>(data.query)
+                .then(result => {
+                    writeFileSync(data.responseFile, String(result));
+                })
+                .catch(err => {
+                    writeFileSync(data.responseFile, `Error: ${err}`);
+                });
             return;
         }
 
@@ -225,6 +293,7 @@ function setupSecondInstanceHandler() {
 
 function checkForSecondInstance() {
     if (checkCommandLineForToggleCommands()) return;
+    if (checkCommandLineForQueryCommands()) return;
 
     if (!app.requestSingleInstanceLock({ IS_DEV })) {
         if (IS_DEV) {
