@@ -36,6 +36,7 @@ private:
     GObjectPtr<GDBusConnection> bus;
     guint registration_id = 0;
     guint menu_registration_id = 0;
+    guint owner_id = 0;
     guint watcher_id = 0;
     bool registered_with_watcher = false;
     std::string service_name;

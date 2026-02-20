@@ -106,6 +106,7 @@ Check The Downloads from the [website](https://equicord.org/download)
 Below you can find unofficial packages created by the community. They are not officially supported by us, so before reporting issues, please first confirm the issue also happens on official builds. When in doubt, consult with their packager first. The AppImage should work on any distro that supports them, so I recommend you just use that instead!
 
 - Arch Linux: [Equibop on the Arch user repository](https://aur.archlinux.org/packages?K=equibop)
+- Void Linux: [Equibop on the Void repository](https://void.creations.works/)
 - NixOS: `nix-shell -p equibop`
 
 ## Building from Source

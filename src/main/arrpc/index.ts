@@ -668,6 +668,20 @@ export async function initArRPC() {
                 lastError = `Process exited with code ${code}`;
             }
 
+            if (signal === "SIGILL") {
+                console.error(
+                    "[arRPC] SIGILL (Illegal Instruction) - Binary may be compiled for a different CPU architecture"
+                );
+                console.error(`[arRPC] arch: ${process.arch}, platform: ${process.platform}, binary: ${binaryPath}`);
+                lastError = "SIGILL: Binary incompatible with CPU architecture";
+            } else if (signal === "SIGSEGV") {
+                console.error(`[arRPC] SIGSEGV (Segmentation Fault) - binary: ${binaryPath}`);
+                lastError = "SIGSEGV: Binary crashed";
+            } else if (signal === "SIGABRT") {
+                console.error(`[arRPC] SIGABRT (Abort) - binary: ${binaryPath}`);
+                lastError = "SIGABRT: Binary aborted";
+            }
+
             debugLog(`arRPC process exited with code ${code}, signal ${signal}, wasReady: ${wasReady}`);
 
             arrpcProcess = null;

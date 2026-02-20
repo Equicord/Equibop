@@ -30,6 +30,10 @@ jobs:
               with:
                   platforms: linux/arm64
 
+            - name: Install system dependencies
+              if: matrix.arch == 'x64'
+              run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
+
             - name: Install dependencies (native x64)
               if: matrix.arch == 'x64'
               uses: oven-sh/setup-bun@v2
@@ -44,7 +48,7 @@ jobs:
                   docker run --rm --platform ${{ matrix.platform }} \
                     -v "$(pwd):/work" -w /work \
                     oven/bun:1 \
-                    bun install
+                    bash -c "apt-get update && apt-get install -y libglib2.0-dev && bun install"
 
             - name: Create node_modules tarball
               run: tar -czf node_modules-${{ matrix.arch }}.tar.gz node_modules/

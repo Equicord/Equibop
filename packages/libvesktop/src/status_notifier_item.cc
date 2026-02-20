@@ -554,6 +554,10 @@ StatusNotifierItem::~StatusNotifierItem()
         {
             g_dbus_connection_unregister_object(bus.get(), registration_id);
         }
+        if (owner_id != 0)
+        {
+            g_bus_unown_name(owner_id);
+        }
     }
 }
 
@@ -598,7 +602,7 @@ bool StatusNotifierItem::initialize()
     GBusNameOwnerFlags flags = static_cast<GBusNameOwnerFlags>(
         G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT | G_BUS_NAME_OWNER_FLAGS_REPLACE);
 
-    guint owner_id = g_bus_own_name_on_connection(
+    owner_id = g_bus_own_name_on_connection(
         bus.get(),
         service_name.c_str(),
         flags,
@@ -624,13 +628,16 @@ bool StatusNotifierItem::register_with_watcher()
 
     GError *error = nullptr;
 
+    const gchar *unique_name = g_dbus_connection_get_unique_name(bus.get());
+    const char *register_name = unique_name ? unique_name : service_name.c_str();
+
     GVariantPtr reply(g_dbus_connection_call_sync(
         bus.get(),
         WATCHER_SERVICE,
         WATCHER_PATH,
         WATCHER_SERVICE,
         "RegisterStatusNotifierItem",
-        g_variant_new("(s)", service_name.c_str()),
+        g_variant_new("(s)", register_name),
         nullptr,
         G_DBUS_CALL_FLAGS_NONE,
         -1,

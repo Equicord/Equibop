@@ -73,6 +73,11 @@ const options = {
     "get-call-duration": {
         type: "boolean",
         description: "Get the duration of the current call ([hh]:mm:ss)"
+    },
+    repair: {
+        type: "boolean",
+        short: "r",
+        description: "Re-download Equicord and restart"
     }
 } satisfies Record<string, Option>;
 
@@ -106,6 +111,24 @@ export const CommandLine = parseArgs({
     strict: false as true, // we manually check later, so cast to true to get better types
     allowPositionals: true
 });
+
+export async function checkCommandLineForRepair() {
+    const { repair } = CommandLine.values;
+    if (!repair) return false;
+
+    const { State } = await import("./settings");
+    if (State.store.equicordDir) {
+        console.error("Cannot repair: using custom Equicord directory. Remove it in settings first.");
+        process.exit(1);
+    }
+
+    console.log("Repairing Equicord...");
+    const { downloadVencordAsar } = await import("./utils/vencordLoader");
+    await downloadVencordAsar();
+    console.log("Repair complete.");
+    process.exit(0);
+    return true;
+}
 
 export function checkCommandLineForHelpOrVersion() {
     const { help, version } = CommandLine.values;

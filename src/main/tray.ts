@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { app, BrowserWindow, Menu, NativeImage, nativeImage, Tray } from "electron";
+import { app, type BrowserWindow, Menu, type NativeImage, nativeImage, Tray } from "electron";
 import { join } from "path";
 import { STATIC_DIR } from "shared/paths";
 
@@ -13,7 +13,7 @@ import { createArgumentsWindow } from "./arguments";
 import { restartArRPC } from "./arrpc";
 import { AppEvents } from "./events";
 import { Settings } from "./settings";
-import { resolveAssetPath, UserAssetType } from "./userAssets";
+import { resolveAssetPath } from "./userAssets";
 import { clearData } from "./utils/clearData";
 import { downloadVencordAsar } from "./utils/vencordLoader";
 
@@ -33,37 +33,34 @@ if (isLinux) {
 let tray: Tray | null = null;
 let trayVariant: TrayVariant = "tray";
 let onTrayClick: (() => void) | null = null;
-let trayUpdateTimeout: NodeJS.Timeout | null = null;
-let pendingTrayVariant: TrayVariant | null = null;
 let nativeTrayWindow: BrowserWindow | null = null;
 let nativeTrayUpdateCallback: (() => void) | null = null;
 
 const trayImageCache = new Map<string, NativeImage>();
+const trayPixmapCache = new Map<string, Buffer>();
 
 let useNativeTray = false;
 let nativeTrayInitialized = false;
 
 async function getCachedTrayImage(variant: TrayVariant): Promise<NativeImage> {
-    const path = await resolveAssetPath(variant as UserAssetType);
+    const path = await resolveAssetPath(variant);
 
     const cached = trayImageCache.get(path);
     if (cached) return cached;
 
     const image = nativeImage.createFromPath(path);
-    trayImageCache.set(path, image);
+    const resized = image.resize({ width: 32, height: 32 });
+    trayImageCache.set(path, resized);
 
-    return image;
+    return resized;
 }
 
 function nativeImageToPixmap(image: NativeImage): Promise<Buffer> {
     return new Promise(resolve => {
         setImmediate(() => {
-            const resized = image.resize({ width: 32, height: 32 });
-            const size = resized.getSize();
-            const { width } = size;
-            const { height } = size;
+            const { width, height } = image.getSize();
 
-            const bitmap = resized.toBitmap();
+            const bitmap = image.toBitmap();
 
             const pixmapSize = 8 + bitmap.length;
             const pixmap = Buffer.allocUnsafe(pixmapSize);
@@ -93,17 +90,30 @@ function nativeImageToPixmap(image: NativeImage): Promise<Buffer> {
     });
 }
 
+async function getCachedTrayPixmap(variant: TrayVariant): Promise<Buffer> {
+    const path = await resolveAssetPath(variant);
+    const cached = trayPixmapCache.get(path);
+    if (cached) return cached;
+
+    const image = await getCachedTrayImage(variant);
+    const pixmap = await nativeImageToPixmap(image);
+    trayPixmapCache.set(path, pixmap);
+
+    return pixmap;
+}
+
 const userAssetChangedListener = async (asset: string) => {
     if (!asset.startsWith("tray")) return;
 
     try {
         if (useNativeTray && nativeSNI) {
             trayImageCache.clear();
-            const image = await getCachedTrayImage(trayVariant);
-            const pixmap = await nativeImageToPixmap(image);
+            trayPixmapCache.clear();
+            const pixmap = await getCachedTrayPixmap(trayVariant);
             nativeSNI.setStatusNotifierIcon(pixmap);
         } else if (tray) {
             trayImageCache.clear();
+            trayPixmapCache.clear();
             const image = await getCachedTrayImage(trayVariant);
             tray.setImage(image);
         }
@@ -119,8 +129,7 @@ async function updateTrayIconNative(variant: TrayVariant) {
 
     try {
         if (useNativeTray && nativeSNI) {
-            const image = await getCachedTrayImage(variant);
-            const pixmap = await nativeImageToPixmap(image);
+            const pixmap = await getCachedTrayPixmap(variant);
             nativeSNI.setStatusNotifierIcon(pixmap);
         }
     } catch (e) {
@@ -144,20 +153,7 @@ const setTrayVariantListener = (variant: TrayVariant) => {
     if (useNativeTray) {
         updateTrayIconNative(variant);
     } else {
-        pendingTrayVariant = variant;
-
-        if (trayUpdateTimeout) return;
-
         updateTrayIconElectron(variant);
-
-        trayUpdateTimeout = setTimeout(() => {
-            trayUpdateTimeout = null;
-
-            if (pendingTrayVariant && pendingTrayVariant !== trayVariant) {
-                updateTrayIconElectron(pendingTrayVariant);
-            }
-            pendingTrayVariant = null;
-        }, 100);
     }
 };
 
@@ -172,12 +168,6 @@ if (!AppEvents.listeners("setTrayVariant").includes(setTrayVariantListener)) {
 export function destroyTray() {
     AppEvents.off("userAssetChanged", userAssetChangedListener);
     AppEvents.off("setTrayVariant", setTrayVariantListener);
-
-    if (trayUpdateTimeout) {
-        clearTimeout(trayUpdateTimeout);
-        trayUpdateTimeout = null;
-    }
-    pendingTrayVariant = null;
 
     if (useNativeTray && nativeSNI) {
         try {
@@ -208,6 +198,7 @@ export function destroyTray() {
     }
 
     trayImageCache.clear();
+    trayPixmapCache.clear();
     useNativeTray = false;
 }
 
@@ -227,8 +218,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                 useNativeTray = true;
                 nativeTrayInitialized = true;
 
-                const initialImage = await getCachedTrayImage(trayVariant);
-                const pixmap = await nativeImageToPixmap(initialImage);
+                const pixmap = await getCachedTrayPixmap(trayVariant);
                 nativeSNI.setStatusNotifierIcon(pixmap);
                 nativeSNI.setStatusNotifierTitle("Equibop");
 
@@ -274,8 +264,11 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                             break;
                         case 3: // repair equicord
                             downloadVencordAsar().then(() => {
-                                app.relaunch();
-                                app.quit();
+                                setTimeout(() => {
+                                    destroyTray();
+                                    app.relaunch();
+                                    app.quit();
+                                }, 0);
                             });
                             break;
                         case 4: // reset Equibop
@@ -288,8 +281,11 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                             restartArRPC();
                             break;
                         case 8: // restart
-                            app.relaunch();
-                            app.quit();
+                            setTimeout(() => {
+                                destroyTray();
+                                app.relaunch();
+                                app.quit();
+                            }, 0);
                             break;
                         case 9: // quit
                             setIsQuitting(true);
@@ -332,6 +328,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
             label: "Repair Equicord",
             async click() {
                 await downloadVencordAsar();
+                destroyTray();
                 app.relaunch();
                 app.quit();
             }
@@ -359,6 +356,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
         {
             label: "Restart",
             click() {
+                destroyTray();
                 app.relaunch();
                 app.quit();
             }
