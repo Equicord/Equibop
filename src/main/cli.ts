@@ -12,6 +12,7 @@ import { app } from "electron";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
 import { parseArgs, ParseArgsOptionDescriptor } from "util";
+import { sendRendererCommand } from "main/ipcCommands";
 
 type Option = ParseArgsOptionDescriptor & {
     description: string;
@@ -257,15 +258,13 @@ function setupSecondInstanceHandler() {
         }
 
         if (data.query && data.responseFile) {
-            import("./ipcCommands").then(({ sendRendererCommand }) => {
-                sendRendererCommand<string>(data.query)
-                    .then(result => {
-                        writeFileSync(data.responseFile, String(result));
-                    })
-                    .catch(err => {
-                        writeFileSync(data.responseFile, `Error: ${err}`);
-                    });
-            });
+            sendRendererCommand<string>(data.query)
+                .then(result => {
+                    writeFileSync(data.responseFile, String(result));
+                })
+                .catch(err => {
+                    writeFileSync(data.responseFile, `Error: ${err}`);
+                });
             return;
         }
 
