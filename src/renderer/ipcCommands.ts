@@ -8,7 +8,7 @@ import { SettingsRouter } from "@equicord/types/webpack/common";
 import { IpcCommands } from "shared/IpcEvents";
 
 import { openScreenSharePicker } from "./components/ScreenSharePicker";
-import { callStartTime } from "./patches/tray";
+import { getCallStartTime } from "./patches/tray";
 
 type IpcCommandHandler = (data: any) => any;
 
@@ -127,6 +127,7 @@ onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
 });
 
 onIpcCommand(IpcCommands.QUERY_CALL_DURATION, () => {
+    const callStartTime = getCallStartTime();
     if (callStartTime == null)
         return "Not in call";
 

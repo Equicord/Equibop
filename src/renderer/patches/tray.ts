@@ -13,7 +13,12 @@ import { setBadge } from "../appBadge";
 type TrayVariant = "tray" | "trayUnread" | "traySpeaking" | "trayIdle" | "trayMuted" | "trayDeafened";
 
 let isInCall = false;
-export let callStartTime: number | null = null;
+let callStartTime: number | null = null;
+
+export function getCallStartTime(): number | null {
+    return callStartTime;
+}
+
 let currentVariant: TrayVariant | null = null;
 let lastSentVariant: TrayVariant | null = null;
 let trayStateUpdateTimeout: ReturnType<typeof setTimeout> | null = null;
