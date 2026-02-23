@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { app } from "electron";
 import { readFileSync, unlinkSync, writeFileSync } from "fs";
+import { sendRendererCommand } from "main/ipcCommands";
 import { tmpdir } from "os";
 import { basename, join } from "path";
-import { parseArgs, ParseArgsOptionDescriptor } from "util";
-
-import { app } from "electron";
-import { sendRendererCommand } from "main/ipcCommands";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
+import { parseArgs, ParseArgsOptionDescriptor } from "util";
 
 type Option = ParseArgsOptionDescriptor & {
     description: string;
