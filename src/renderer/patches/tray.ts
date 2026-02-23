@@ -13,6 +13,12 @@ import { setBadge } from "../appBadge";
 type TrayVariant = "tray" | "trayUnread" | "traySpeaking" | "trayIdle" | "trayMuted" | "trayDeafened";
 
 let isInCall = false;
+let callStartTime: number | null = null;
+
+export function getCallStartTime(): number | null {
+    return callStartTime;
+}
+
 let currentVariant: TrayVariant | null = null;
 let lastSentVariant: TrayVariant | null = null;
 let trayStateUpdateTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -108,10 +114,12 @@ onceReady.then(() => {
         if (params.context === "default") {
             if (params.state === "RTC_CONNECTED") {
                 isInCall = true;
+                callStartTime = Date.now();
                 VesktopNative.tray.setVoiceCallState(true);
                 updateTrayIcon();
             } else if (params.state === "RTC_DISCONNECTED") {
                 isInCall = false;
+                callStartTime = null;
                 resetTrayStateTracking();
                 VesktopNative.tray.setVoiceCallState(false);
                 if (Settings.store.appBadge) setBadge();
