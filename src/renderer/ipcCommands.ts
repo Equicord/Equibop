@@ -60,8 +60,7 @@ onIpcCommand(IpcCommands.QUERY_IS_IN_CALL, () => {
         const UserStore = Vencord.Webpack.findStore("UserStore");
 
         const currentUserId = UserStore.getCurrentUser()?.id;
-        if (!currentUserId)
-            return "false";
+        if (!currentUserId) return "false";
 
         const voiceState = VoiceStateStore.getVoiceStateForUser(currentUserId);
         return voiceState?.channelId ? "true" : "false";
@@ -77,29 +76,24 @@ onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
         const ChannelStore = Vencord.Webpack.findStore("ChannelStore");
 
         const currentUser = UserStore.getCurrentUser();
-        if (!currentUser?.id)
-            return "Not in call";
+        if (!currentUser?.id) return "Not in call";
 
         const voiceState = VoiceStateStore.getVoiceStateForUser(currentUser.id);
-        if (!voiceState?.channelId)
-            return "Not in call";
+        if (!voiceState?.channelId) return "Not in call";
 
         const channel = ChannelStore.getChannel(voiceState.channelId);
-        if (!channel)
-            return "Not in call";
+        if (!channel) return "Not in call";
 
         // Guild voice channel - use channel name
-        if (channel.guild_id)
-            return channel.name;
+        if (channel.guild_id) return channel.name;
 
         // DM call - show the other user's name
         if (channel.type === 1) {
             const recipientId = channel.recipients?.find((id: string) => id !== currentUser.id);
-            
+
             if (recipientId) {
                 const recipient = UserStore.getUser(recipientId);
-                if (recipient)
-                    return recipient.globalName || recipient.username;
+                if (recipient) return recipient.globalName || recipient.username;
             }
 
             return channel.name || "DM Call";
@@ -107,8 +101,7 @@ onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
 
         // Group DM call - use the group name or fallback to recipient names
         if (channel.type === 3) {
-            if (channel.name)
-                return channel.name;
+            if (channel.name) return channel.name;
 
             const names = channel.recipients
                 ?.map((id: string) => {
@@ -128,8 +121,7 @@ onIpcCommand(IpcCommands.QUERY_VOICE_CHANNEL_NAME, () => {
 
 onIpcCommand(IpcCommands.QUERY_CALL_DURATION, () => {
     const callStartTime = getCallStartTime();
-    if (callStartTime == null)
-        return "Not in call";
+    if (callStartTime == null) return "Not in call";
 
     const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
     const hours = Math.floor(elapsed / 3600);

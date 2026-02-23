@@ -7,12 +7,12 @@
 import { readFileSync, unlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { basename, join } from "path";
+import { parseArgs, ParseArgsOptionDescriptor } from "util";
 
 import { app } from "electron";
+import { sendRendererCommand } from "main/ipcCommands";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
-import { parseArgs, ParseArgsOptionDescriptor } from "util";
-import { sendRendererCommand } from "main/ipcCommands";
 
 type Option = ParseArgsOptionDescriptor & {
     description: string;
@@ -210,15 +210,19 @@ function checkCommandLineForToggleCommands() {
 }
 
 function checkCommandLineForQueryCommands() {
-    const { "is-in-call": isInCall, "get-voice-channel-name": getVoiceChannelName, "get-call-duration": getCallDuration } = CommandLine.values;
+    const {
+        "is-in-call": isInCall,
+        "get-voice-channel-name": getVoiceChannelName,
+        "get-call-duration": getCallDuration
+    } = CommandLine.values;
 
     if (!isInCall && !getVoiceChannelName && !getCallDuration) return false;
 
     const query = isInCall
         ? IpcCommands.QUERY_IS_IN_CALL
         : getVoiceChannelName
-            ? IpcCommands.QUERY_VOICE_CHANNEL_NAME
-            : IpcCommands.QUERY_CALL_DURATION;
+          ? IpcCommands.QUERY_VOICE_CHANNEL_NAME
+          : IpcCommands.QUERY_CALL_DURATION;
     const responseFile = join(tmpdir(), `equibop-query-${Date.now()}-${process.pid}.tmp`);
 
     if (!app.requestSingleInstanceLock({ IS_DEV, query, responseFile })) {
