@@ -1,0 +1,51 @@
+name: Update Flake
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  update-flake:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        
+      - name: Get latest release version
+        id: get_version
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name | sed 's/^v//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version and hashes in flake.nix
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          echo "updating flake to version $VERSION"
+          
+          # update version
+          sed -i "s/version = \".*\";/version = \"$VERSION\";/" flake.nix
+          
+          # get hashes
+          X64_HASH=$(nix-hash --to-base32 --type sha256 $(nix-prefetch-url https://github.com/Equicord/Equibop/releases/download/v$VERSION/equibop-$VERSION.tar.gz))
+          X64_SRI=$(nix hash to-sri --type sha256 $X64_HASH)
+          
+          ARM_HASH=$(nix-hash --to-base32 --type sha256 $(nix-prefetch-url https://github.com/Equicord/Equibop/releases/download/v$VERSION/equibop-$VERSION-arm64.tar.gz))
+          ARM_SRI=$(nix hash to-sri --type sha256 $ARM_HASH)
+          
+          echo "X64 SRI: $X64_SRI"
+          echo "ARM SRI: $ARM_SRI"
+          
+          # update hashes
+          sed -i "s|x86_64-linux = \".*\";|x86_64-linux = \"$X64_SRI\";|" flake.nix
+          sed -i "s|aarch64-linux = \".*\";|aarch64-linux = \"$ARM_SRI\";|" flake.nix
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(flake): update to version ${{ steps.get_version.outputs.version }}"
+          file_pattern: 'flake.nix'
