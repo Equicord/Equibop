@@ -36,7 +36,7 @@
         let
           pkgs = pkgsFor system;
           src = srcs.${system};
-          electron = pkgs.electron_34 or pkgs.electron;
+          electron = pkgs.electron_40 or pkgs.electron;
         in
         pkgs.stdenv.mkDerivation {
           pname = "equibop";
@@ -45,38 +45,12 @@
           nativeBuildInputs = with pkgs; [
             makeWrapper
             copyDesktopItems
-            autoPatchelfHook
           ];
 
           buildInputs = with pkgs; [
             stdenv.cc.cc.lib
             libsecret
             libnotify
-            glib
-            nss
-            nspr
-            atk
-            at-spi2-atk
-            cups
-            libdrm
-            gtk3
-            mesa
-            alsa-lib
-            libX11
-            libXcomposite
-            libXdamage
-            libXext
-            libXfixes
-            libXi
-            libXrandr
-            libXrender
-            libXtst
-            libxcb
-            libxkbcommon
-            pango
-            cairo
-            vulkan-loader
-            systemd
           ];
 
           desktopItems = [
@@ -94,43 +68,47 @@
           ];
 
           unpackPhase = ''
+            runHook preUnpack
+            
             mkdir -p source
             tar -xzf $src -C source --strip-components=1
+            
+            runHook postUnpack
           '';
 
           installPhase = ''
             runHook preInstall
 
             mkdir -p $out/lib/equibop
-            cp source/resources/app.asar $out/lib/equibop/
-            cp source/resources/app-update.yml $out/lib/equibop/
+            install -Dm755 source/resources/app.asar $out/lib/equibop/
+            install -Dm755 source/resources/app-update.yml $out/lib/equibop/
             cp -r source/resources/arrpc $out/lib/equibop/
 
             mkdir -p $out/share/pixmaps
-            cp ${./static/icon.png} $out/share/pixmaps/equibop.png
+            install -Dm644 ${./static/icon.png} $out/share/pixmaps/equibop.png
 
             makeWrapper ${electron}/bin/electron $out/bin/equibop \
               --add-flags $out/lib/equibop/app.asar \
               --add-flags "--ozone-platform-hint=auto" \
-              --add-flags "--enable-features=WaylandWindowDecorations" \
               --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (with pkgs; [ stdenv.cc.cc.lib libsecret libnotify ])}" \
               --inherit-argv0
 
             runHook postInstall
           '';
+
+          meta = with pkgs.lib; {
+            description = "Equibop is a custom Discord App aiming to give you better performance and improve linux support.";
+            homepage = "https://github.com/Equicord/Equibop";
+            license = licenses.gpl3Only;
+            platforms = [ "x86_64-linux" "aarch64-linux" ];
+            mainProgram = "equibop";
+          };
         };
     in
     {
       packages = forAllSystems (system: {
         default = mkEquibop system;
         equibop = mkEquibop system;
-      });
-
-      apps = forAllSystems (system: {
-        default = {
-          type = "app";
-          program = "${self.packages.${system}.default}/bin/equibop";
-        };
       });
     };
 }
