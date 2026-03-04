@@ -49,3 +49,4 @@ jobs:
         with:
           commit_message: "chore(flake): update to version ${{ steps.get_version.outputs.version }}"
           file_pattern: 'flake.nix'
+          branch: dev
