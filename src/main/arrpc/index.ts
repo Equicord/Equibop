@@ -338,6 +338,10 @@ function getWsConnectionInfo(): { host: string; port: number } | null {
         return { host: serverHost, port: serverPort };
     }
 
+    if (!Settings.store.arRPCDisabled && !Settings.store.arRPC) {
+        return { host: "127.0.0.1", port: 1337 };
+    }
+
     return null;
 }
 
@@ -428,7 +432,7 @@ function shouldConnectWebSocket(): boolean {
     const customPort = Settings.store.arRPCWebSocketCustomPort;
     if (customHost || customPort) return true;
 
-    if (!Settings.store.arRPC) return false;
+    if (!Settings.store.arRPC) return true;
 
     return isReady || arrpcProcess != null;
 }
@@ -572,6 +576,7 @@ export async function initArRPC() {
         debugLog("Built-in server is disabled, using external only");
         await destroyArRPC();
         restartCount = 0;
+        updateWebSocketConnection();
         return;
     }
 

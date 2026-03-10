@@ -17,7 +17,7 @@ const TARGETS: CompileTarget[] = [
 	{
 		platform: "linux",
 		arch: "x64",
-		target: "bun-linux-x64",
+		target: "bun-linux-x64-baseline",
 		output: "arrpc-linux-x64"
 	},
 	{
@@ -29,7 +29,7 @@ const TARGETS: CompileTarget[] = [
 	{
 		platform: "darwin",
 		arch: "x64",
-		target: "bun-darwin-x64",
+		target: "bun-darwin-x64-baseline",
 		output: "arrpc-darwin-x64"
 	},
 	{
@@ -41,7 +41,7 @@ const TARGETS: CompileTarget[] = [
 	{
 		platform: "windows",
 		arch: "x64",
-		target: "bun-windows-x64",
+		target: "bun-windows-x64-baseline",
 		output: "arrpc-windows-x64.exe"
 	}
 ];
