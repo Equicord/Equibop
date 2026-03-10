@@ -11,6 +11,7 @@ import { STATIC_DIR } from "shared/paths";
 import { createAboutWindow } from "./about";
 import { createArgumentsWindow } from "./arguments";
 import { restartArRPC } from "./arrpc";
+import { AppName } from "./cli";
 import { AppEvents } from "./events";
 import { Settings } from "./settings";
 import { resolveAssetPath } from "./userAssets";
@@ -20,7 +21,6 @@ import { downloadVencordAsar } from "./utils/vencordLoader";
 type TrayVariant = "tray" | "trayUnread" | "traySpeaking" | "trayIdle" | "trayMuted" | "trayDeafened";
 
 const isLinux = process.platform === "linux";
-const appName = app.commandLine.getSwitchValue("app-name") || "equibop";
 
 let nativeSNI: typeof import("libvesktop") | null = null;
 if (isLinux) {
@@ -214,7 +214,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
 
     if (isLinux && nativeSNI) {
         try {
-            const success = nativeSNI.initStatusNotifierItem(appName);
+            const success = nativeSNI.initStatusNotifierItem(AppName);
             if (success) {
                 useNativeTray = true;
                 nativeTrayInitialized = true;

@@ -11,6 +11,7 @@ import "./vesktopProtocol";
 
 import { app, BrowserWindow, nativeTheme } from "electron";
 
+import { AppName } from "./cli";
 import { DATA_DIR } from "./constants";
 import { createFirstLaunchTour } from "./firstLaunch";
 import { createWindows } from "./mainWindow";
@@ -25,10 +26,9 @@ console.log("Equibop v" + app.getVersion());
 process.env.EQUICORD_USER_DATA_DIR = DATA_DIR;
 
 const isLinux = process.platform === "linux";
-const appName = app.commandLine.getSwitchValue("app-name") || "equibop";
 
 if (isLinux) {
-    const desktopName = `${appName}.desktop`;
+    const desktopName = `${AppName}.desktop`;
     process.env.CHROME_DESKTOP = desktopName;
     app.setDesktopName?.(desktopName);
 }
@@ -119,7 +119,7 @@ function init() {
     if (isDeckGameMode) nativeTheme.themeSource = "dark";
 
     app.whenReady().then(async () => {
-        if (process.platform === "win32") app.setAppUserModelId(`org.equicord.${appName}`);
+        if (process.platform === "win32") app.setAppUserModelId(`org.equicord.${AppName}`);
 
         registerScreenShareHandler();
         registerMediaPermissionsHandler();

@@ -67,7 +67,7 @@ const options = {
     "app-name": {
         type: "string",
         hidden: true,
-        description: "The name of the application (used for DBus service name, etc.)"
+        description: "The name of the application (used for DBus service name, etc.). For KDE, ensure this matches exactly your .desktop file name (eg. use your-profile for your-profile.desktop)."
     }
 } satisfies Record<string, Option>;
 
@@ -120,9 +120,10 @@ export async function checkCommandLineForRepair() {
     return true;
 }
 
-const appName = CommandLine.values["app-name"];
-if (typeof appName === "string") {
-    app.setName(appName);
+export const AppName = typeof CommandLine.values["app-name"] === "string" ? CommandLine.values["app-name"] : "equibop";
+
+if (AppName !== "equibop") {
+    app.setName(AppName);
 }
 
 export function checkCommandLineForHelpOrVersion() {

@@ -7,6 +7,8 @@
 import { execFile } from "child_process";
 import { app } from "electron";
 
+import { AppName } from "../cli";
+
 export async function setAsDefaultProtocolClient(protocol: string) {
     if (process.platform !== "linux") {
         return app.setAsDefaultProtocolClient(protocol);
@@ -18,8 +20,7 @@ export async function setAsDefaultProtocolClient(protocol: string) {
     // 7 (YES, SEVEN) years out of date xdg-utils which STILL has the bug.
     // FIXME: remove this workaround when Ubuntu updates their xdg-utils or electron switches to xdg-mime.
 
-    const desktopFile =
-        process.env.CHROME_DESKTOP || `${app.commandLine.getSwitchValue("app-name") || "equibop"}.desktop`;
+    const desktopFile = process.env.CHROME_DESKTOP || `${AppName}.desktop`;
     if (!desktopFile) return false;
 
     return new Promise<boolean>(resolve => {
