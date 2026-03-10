@@ -29,7 +29,8 @@ function getEscapedCommandLine() {
 function makeAutoStartLinuxDesktop(): AutoStart {
     const configDir = process.env.XDG_CONFIG_HOME || join(process.env.HOME!, ".config");
     const dir = join(configDir, "autostart");
-    const file = join(dir, "equibop.desktop");
+    const appName = app.commandLine.getSwitchValue("app-name") || "equibop";
+    const file = join(dir, `${appName}.desktop`);
 
     return {
         isEnabled: () => existsSync(file),
@@ -37,7 +38,7 @@ function makeAutoStartLinuxDesktop(): AutoStart {
             const desktopFile = stripIndent`
                 [Desktop Entry]
                 Type=Application
-                Name=Equibop
+                Name=${appName === "equibop" ? "Equibop" : appName}
                 Comment=Equibop autostart script
                 Exec=${getEscapedCommandLine().join(" ")}
                 StartupNotify=false

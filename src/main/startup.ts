@@ -25,6 +25,13 @@ console.log("Equibop v" + app.getVersion());
 process.env.EQUICORD_USER_DATA_DIR = DATA_DIR;
 
 const isLinux = process.platform === "linux";
+const appName = app.commandLine.getSwitchValue("app-name") || "equibop";
+
+if (isLinux) {
+    const desktopName = `${appName}.desktop`;
+    process.env.CHROME_DESKTOP = desktopName;
+    app.setDesktopName?.(desktopName);
+}
 
 export let enableHardwareAcceleration = true;
 
@@ -112,7 +119,7 @@ function init() {
     if (isDeckGameMode) nativeTheme.themeSource = "dark";
 
     app.whenReady().then(async () => {
-        if (process.platform === "win32") app.setAppUserModelId("org.equicord.equibop");
+        if (process.platform === "win32") app.setAppUserModelId(`org.equicord.${appName}`);
 
         registerScreenShareHandler();
         registerMediaPermissionsHandler();

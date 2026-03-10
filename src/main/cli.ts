@@ -63,6 +63,11 @@ const options = {
         type: "boolean",
         short: "r",
         description: "Re-download Equicord and restart"
+    },
+    "app-name": {
+        type: "string",
+        hidden: true,
+        description: "The name of the application (used for DBus service name, etc.)"
     }
 } satisfies Record<string, Option>;
 
@@ -115,6 +120,11 @@ export async function checkCommandLineForRepair() {
     return true;
 }
 
+const appName = CommandLine.values["app-name"];
+if (typeof appName === "string") {
+    app.setName(appName);
+}
+
 export function checkCommandLineForHelpOrVersion() {
     const { help, version } = CommandLine.values;
 
@@ -147,7 +157,9 @@ export function checkCommandLineForHelpOrVersion() {
                     "short" in opt && `-${opt.short}`,
                     `--${name}`,
                     opt.type !== "boolean" &&
-                        ("options" in opt ? `<${opt.options.join(" | ")}>` : `<${opt.argumentName ?? opt.type}>`)
+                        ("options" in opt
+                            ? `<${opt.options.join(" | ")}>`
+                            : `<${("argumentName" in opt && opt.argumentName) || opt.type}>`)
                 ]
                     .filter(Boolean)
                     .join(" ");

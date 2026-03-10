@@ -18,11 +18,12 @@ export async function setAsDefaultProtocolClient(protocol: string) {
     // 7 (YES, SEVEN) years out of date xdg-utils which STILL has the bug.
     // FIXME: remove this workaround when Ubuntu updates their xdg-utils or electron switches to xdg-mime.
 
-    const { CHROME_DESKTOP } = process.env;
-    if (!CHROME_DESKTOP) return false;
+    const desktopFile =
+        process.env.CHROME_DESKTOP || `${app.commandLine.getSwitchValue("app-name") || "equibop"}.desktop`;
+    if (!desktopFile) return false;
 
     return new Promise<boolean>(resolve => {
-        execFile("xdg-mime", ["default", CHROME_DESKTOP, `x-scheme-handler/${protocol}`], err => {
+        execFile("xdg-mime", ["default", desktopFile, `x-scheme-handler/${protocol}`], err => {
             resolve(err == null);
         });
     });

@@ -20,6 +20,7 @@ import { downloadVencordAsar } from "./utils/vencordLoader";
 type TrayVariant = "tray" | "trayUnread" | "traySpeaking" | "trayIdle" | "trayMuted" | "trayDeafened";
 
 const isLinux = process.platform === "linux";
+const appName = app.commandLine.getSwitchValue("app-name") || "equibop";
 
 let nativeSNI: typeof import("libvesktop") | null = null;
 if (isLinux) {
@@ -213,7 +214,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
 
     if (isLinux && nativeSNI) {
         try {
-            const success = nativeSNI.initStatusNotifierItem();
+            const success = nativeSNI.initStatusNotifierItem(appName);
             if (success) {
                 useNativeTray = true;
                 nativeTrayInitialized = true;
