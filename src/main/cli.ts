@@ -8,7 +8,7 @@ import { app } from "electron";
 import { readFileSync, unlinkSync, writeFileSync } from "fs";
 import { sendRendererCommand } from "main/ipcCommands";
 import { tmpdir } from "os";
-import { basename, join } from "path";
+import { basename, join, resolve } from "path";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
 import { parseArgs, ParseArgsOptionDescriptor } from "util";
@@ -241,6 +241,9 @@ function checkCommandLineForQueryCommands() {
             } catch {
                 if (Date.now() - startTime > timeout) {
                     clearInterval(interval);
+                    try {
+                        unlinkSync(responseFile);
+                    } catch {}
                     console.error("Timed out waiting for response from running instance.");
                     app.exit(1);
                 }
@@ -261,12 +264,24 @@ function setupSecondInstanceHandler() {
         }
 
         if (data.query && data.responseFile) {
+            const allowedQueries: string[] = [
+                IpcCommands.QUERY_IS_IN_CALL,
+                IpcCommands.QUERY_VOICE_CHANNEL_NAME,
+                IpcCommands.QUERY_CALL_DURATION
+            ];
+
+            if (!allowedQueries.includes(data.query)) return;
+
+            const tempDir = tmpdir();
+            const resolvedPath = resolve(data.responseFile);
+            if (!resolvedPath.startsWith(tempDir)) return;
+
             sendRendererCommand<string>(data.query)
                 .then(result => {
-                    writeFileSync(data.responseFile, String(result));
+                    writeFileSync(resolvedPath, String(result));
                 })
                 .catch(err => {
-                    writeFileSync(data.responseFile, `Error: ${err}`);
+                    writeFileSync(resolvedPath, `Error: ${err}`);
                 });
             return;
         }
