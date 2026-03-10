@@ -6,12 +6,13 @@
 
 import { app } from "electron";
 import { readFileSync, unlinkSync, writeFileSync } from "fs";
-import { sendRendererCommand } from "main/ipcCommands";
 import { tmpdir } from "os";
 import { basename, join, resolve } from "path";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
 import { parseArgs, ParseArgsOptionDescriptor } from "util";
+
+export let isQueryInstance = false;
 
 type Option = ParseArgsOptionDescriptor & {
     description: string;
@@ -225,6 +226,7 @@ function checkCommandLineForQueryCommands() {
     const responseFile = join(tmpdir(), `equibop-query-${Date.now()}-${process.pid}.tmp`);
 
     if (!app.requestSingleInstanceLock({ IS_DEV, query, responseFile })) {
+        isQueryInstance = true;
         // The first instance will make a response file for us to use.
         // Poll for it.
         const startTime = Date.now();
@@ -258,11 +260,6 @@ function checkCommandLineForQueryCommands() {
 
 function setupSecondInstanceHandler() {
     app.on("second-instance", (_event, commandLine, _cwd, data: any) => {
-        if (data.IS_DEV) {
-            app.quit();
-            return;
-        }
-
         if (data.query && data.responseFile) {
             const allowedQueries: string[] = [
                 IpcCommands.QUERY_IS_IN_CALL,
@@ -276,13 +273,19 @@ function setupSecondInstanceHandler() {
             const resolvedPath = resolve(data.responseFile);
             if (!resolvedPath.startsWith(tempDir)) return;
 
-            sendRendererCommand<string>(data.query)
+            import("./ipcCommands")
+                .then(({ sendRendererCommand }) => sendRendererCommand<string>(data.query))
                 .then(result => {
                     writeFileSync(resolvedPath, String(result));
                 })
                 .catch(err => {
                     writeFileSync(resolvedPath, `Error: ${err}`);
                 });
+            return;
+        }
+
+        if (data.IS_DEV) {
+            app.quit();
             return;
         }
 
