@@ -21,7 +21,6 @@ export async function setAsDefaultProtocolClient(protocol: string) {
     // FIXME: remove this workaround when Ubuntu updates their xdg-utils or electron switches to xdg-mime.
 
     const desktopFile = process.env.CHROME_DESKTOP || `${AppName}.desktop`;
-    if (!desktopFile) return false;
 
     return new Promise<boolean>(resolve => {
         execFile("xdg-mime", ["default", desktopFile, `x-scheme-handler/${protocol}`], err => {
