@@ -263,7 +263,14 @@ Napi::Value InitStatusNotifierItem(const Napi::CallbackInfo &info)
         return Napi::Boolean::New(env, true);
     }
 
-    g_sni_instance = std::make_unique<StatusNotifierItem>();
+    if (info.Length() < 1 || !info[0].IsString())
+    {
+        Napi::TypeError::New(env, "Expected (string)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    std::string app_name = info[0].As<Napi::String>().Utf8Value();
+    g_sni_instance = std::make_unique<StatusNotifierItem>(app_name);
     bool success = g_sni_instance->initialize();
 
     if (!success)

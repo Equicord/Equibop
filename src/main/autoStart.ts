@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { stripIndent } from "shared/utils/text";
 
+import { AppName } from "./cli";
 import { IS_FLATPAK } from "./constants";
 import { requestBackground } from "./dbus";
 import { Settings, State } from "./settings";
@@ -29,7 +30,7 @@ function getEscapedCommandLine() {
 function makeAutoStartLinuxDesktop(): AutoStart {
     const configDir = process.env.XDG_CONFIG_HOME || join(process.env.HOME!, ".config");
     const dir = join(configDir, "autostart");
-    const file = join(dir, "equibop.desktop");
+    const file = join(dir, `${AppName}.desktop`);
 
     return {
         isEnabled: () => existsSync(file),
@@ -37,7 +38,7 @@ function makeAutoStartLinuxDesktop(): AutoStart {
             const desktopFile = stripIndent`
                 [Desktop Entry]
                 Type=Application
-                Name=Equibop
+                Name=${AppName === "equibop" ? "Equibop" : AppName}
                 Comment=Equibop autostart script
                 Exec=${getEscapedCommandLine().join(" ")}
                 StartupNotify=false

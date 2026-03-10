@@ -63,6 +63,12 @@ const options = {
         type: "boolean",
         short: "r",
         description: "Re-download Equicord and restart"
+    },
+    "app-name": {
+        type: "string",
+        hidden: true,
+        description:
+            "The name of the application (used for DBus service name, etc.). For KDE, ensure this matches exactly your .desktop file name (eg. use your-profile for your-profile.desktop)."
     }
 } satisfies Record<string, Option>;
 
@@ -115,6 +121,12 @@ export async function checkCommandLineForRepair() {
     return true;
 }
 
+export const AppName = typeof CommandLine.values["app-name"] === "string" ? CommandLine.values["app-name"] : "equibop";
+
+if (AppName !== "equibop") {
+    app.setName(AppName);
+}
+
 export function checkCommandLineForHelpOrVersion() {
     const { help, version } = CommandLine.values;
 
@@ -147,7 +159,9 @@ export function checkCommandLineForHelpOrVersion() {
                     "short" in opt && `-${opt.short}`,
                     `--${name}`,
                     opt.type !== "boolean" &&
-                        ("options" in opt ? `<${opt.options.join(" | ")}>` : `<${opt.argumentName ?? opt.type}>`)
+                        ("options" in opt
+                            ? `<${opt.options.join(" | ")}>`
+                            : `<${("argumentName" in opt && opt.argumentName) || opt.type}>`)
                 ]
                     .filter(Boolean)
                     .join(" ");
@@ -176,6 +190,13 @@ export function checkCommandLineForHelpOrVersion() {
 
         if ("options" in def && !def.options?.includes(value as string)) {
             console.error(`Invalid value for --${name}: ${value}\nExpected one of: ${def.options.join(", ")}`);
+            app.exit(1);
+        }
+
+        if (name === "app-name" && !/^[A-Za-z0-9._-]+$/.test(value as string)) {
+            console.error(
+                `Invalid value for --${name}: ${value}\nExpected a desktop/DBus-safe identifier containing only letters, numbers, '.', '_' or '-'.`
+            );
             app.exit(1);
         }
     }
