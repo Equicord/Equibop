@@ -191,6 +191,11 @@ export function checkCommandLineForHelpOrVersion() {
             console.error(`Invalid value for --${name}: ${value}\nExpected one of: ${def.options.join(", ")}`);
             app.exit(1);
         }
+
+        if (name === "app-name" && !/^[A-Za-z0-9._-]+$/.test(value as string)) {
+            console.error(`Invalid value for --${name}: ${value}\nExpected a desktop/DBus-safe identifier containing only letters, numbers, '.', '_' or '-'.`);
+            app.exit(1);
+        }
     }
 }
 
