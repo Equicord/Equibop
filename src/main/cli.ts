@@ -67,7 +67,8 @@ const options = {
     "app-name": {
         type: "string",
         hidden: true,
-        description: "The name of the application (used for DBus service name, etc.). For KDE, ensure this matches exactly your .desktop file name (eg. use your-profile for your-profile.desktop)."
+        description:
+            "The name of the application (used for DBus service name, etc.). For KDE, ensure this matches exactly your .desktop file name (eg. use your-profile for your-profile.desktop)."
     }
 } satisfies Record<string, Option>;
 
@@ -193,7 +194,9 @@ export function checkCommandLineForHelpOrVersion() {
         }
 
         if (name === "app-name" && !/^[A-Za-z0-9._-]+$/.test(value as string)) {
-            console.error(`Invalid value for --${name}: ${value}\nExpected a desktop/DBus-safe identifier containing only letters, numbers, '.', '_' or '-'.`);
+            console.error(
+                `Invalid value for --${name}: ${value}\nExpected a desktop/DBus-safe identifier containing only letters, numbers, '.', '_' or '-'.`
+            );
             app.exit(1);
         }
     }
