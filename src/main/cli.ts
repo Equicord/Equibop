@@ -63,6 +63,11 @@ const options = {
         hidden: process.platform !== "linux",
         description: "Toggle your deafen status"
     },
+    "toggle-vad": {
+        type: "boolean",
+        hidden: process.platform !== "linux",
+        description: "Toggle Voice Activity Detection (Voice Activity <-> Push To Talk)"
+    },
     "is-in-call": {
         type: "boolean",
         description: "Check if you are currently in a voice call"
@@ -198,9 +203,9 @@ export function checkCommandLineForHelpOrVersion() {
 }
 
 function checkCommandLineForToggleCommands() {
-    const { "toggle-mic": toggleMic, "toggle-deafen": toggleDeafen } = CommandLine.values;
+    const { "toggle-mic": toggleMic, "toggle-deafen": toggleDeafen, "toggle-vad": toggleVad } = CommandLine.values;
 
-    if (!toggleMic && !toggleDeafen) return false;
+    if (!toggleMic && !toggleDeafen && !toggleVad) return false;
     if (!app.requestSingleInstanceLock({ IS_DEV })) {
         app.exit(0);
     }
@@ -289,15 +294,20 @@ function setupSecondInstanceHandler() {
             return;
         }
 
-        const isToggleCommand = commandLine.some(arg => arg === "--toggle-mic" || arg === "--toggle-deafen");
+        const isToggleCommand = commandLine.some(
+            arg => arg === "--toggle-mic" || arg === "--toggle-deafen" || arg === "--toggle-vad"
+        );
         if (isToggleCommand) {
-            const command = commandLine.includes("--toggle-mic")
-                ? IpcEvents.TOGGLE_SELF_MUTE
-                : IpcEvents.TOGGLE_SELF_DEAF;
+            const commands: IpcEvents[] = [];
+            if (commandLine.includes("--toggle-mic")) commands.push(IpcEvents.TOGGLE_SELF_MUTE);
+            if (commandLine.includes("--toggle-deafen")) commands.push(IpcEvents.TOGGLE_SELF_DEAF);
+            if (commandLine.includes("--toggle-vad")) commands.push(IpcEvents.TOGGLE_VAD);
 
             import("./mainWindow").then(({ mainWin }) => {
                 if (mainWin) {
-                    mainWin.webContents.send(command);
+                    for (const command of commands) {
+                        mainWin.webContents.send(command);
+                    }
                 }
             });
         } else {

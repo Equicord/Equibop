@@ -132,6 +132,9 @@ export const VesktopNative = {
         },
         onToggleSelfDeaf: (listener: (...args: any[]) => void) => {
             ipcRenderer.on(IpcEvents.TOGGLE_SELF_DEAF, listener);
+        },
+        onToggleVAD: (listener: (...args: any[]) => void) => {
+            ipcRenderer.on(IpcEvents.TOGGLE_VAD, listener);
         }
     },
     debug: {
