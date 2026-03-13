@@ -107,7 +107,47 @@ Below you can find unofficial packages created by the community. They are not of
 
 - Arch Linux: [Equibop on the Arch user repository](https://aur.archlinux.org/packages?K=equibop)
 - Void Linux: [Equibop on the Void repository](https://void.creations.works/)
-- NixOS: `nix-shell -p equibop`
+
+##### Nix (Flakes)
+
+If you have Nix (with Flakes enabled), you can run `equibop` without manual installation of dependencies.
+
+###### Run without installing
+```bash
+nix run github:Equicord/Equibop
+```
+
+###### Development Shell
+Includes all system dependencies and Python libraries:
+```bash
+nix develop
+equibop
+```
+
+###### Install to user profile
+```bash
+nix profile install github:Equicord/Equibop
+```
+
+###### Add to NixOS Configuration
+```nix
+# In your flake.nix or configuration.nix
+{
+  inputs.equibop.url = "github:Equicord/Equibop";
+  
+  outputs = { self, nixpkgs, equibop, ... }: {
+    nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
+      modules = [
+        ({ pkgs, ... }: {
+          environment.systemPackages = [
+            equibop.packages.${pkgs.system}.default
+          ];
+        })
+      ];
+    };
+  };
+}
+```
 
 ## Building from Source
 
