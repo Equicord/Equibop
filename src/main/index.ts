@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { CommandLine } from "./cli";
+import { CommandLine, isQueryInstance } from "./cli";
 
-if (CommandLine.values.repair) {
+if (isQueryInstance) {
+    // Query-only instance, don't start the app
+} else if (CommandLine.values.repair) {
     (async () => {
         const { State } = await import("./settings");
         if (State.store.equicordDir) {
