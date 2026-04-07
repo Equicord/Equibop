@@ -43,6 +43,10 @@ function init() {
         enableHardwareAcceleration = false;
         app.disableHardwareAcceleration();
     } else {
+        if (isLinux) {
+            disabledFeatures.add("WaylandWpColorManagerV1");
+        }
+
         if (hardwareVideoAcceleration) {
             enabledFeatures.add("AcceleratedVideoEncoder");
             enabledFeatures.add("AcceleratedVideoDecoder");
