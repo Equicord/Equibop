@@ -40,6 +40,7 @@ You can join our [discord server](https://equicord.org/discord) for commits, cha
 | `--start-minimized`             | Launch minimized to tray                |
 | `--toggle-mic`                  | Toggle mic (bind to shortcuts)          |
 | `--toggle-deafen`               | Toggle deafen (bind to shortcuts)       |
+| `--toggle-vad`                  | Toggle Voice Activity Detection (Voice Activity <-> Push To Talk) |
 
 ### Persistent flags
 
