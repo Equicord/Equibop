@@ -14,10 +14,10 @@
         "skipLibCheck": true,
 
         "paths": {
-            "*": ["./src/*"],
+            "*": ["./src/*"]
         },
 
-        "types": ["node", "@vencord/types"]
+        "types": ["node", "@equicord/types"]
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "src/main/arrpc/bunWorker.ts"]
