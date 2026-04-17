@@ -30,3 +30,9 @@ declare module "@vencord/venmic" {
         unlink(): boolean;
     }
 }
+
+declare namespace Electron {
+    interface App {
+        setDesktopName(desktopName: string): void;
+    }
+}
