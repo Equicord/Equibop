@@ -32,7 +32,7 @@
         "@types/ws": "^8.18.1",
         "@typescript-eslint/eslint-plugin": "^8.58.2",
         "@typescript-eslint/parser": "^8.58.2",
-        "arrpc-bun": "^1.3.5",
+        "arrpc-bun": "^1.3.6",
         "electron-updater": "^6.8.3",
         "tsutils": "^3.21.0",
         "ws": "^8.20.0"
