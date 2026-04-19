@@ -91,10 +91,14 @@ for (const target of targetsToCompile) {
 
 	try {
 		const cmd = `bun build ${ARRPC_ENTRY} --compile --target=${target.target} --outfile=${outputPath}`;
-		// see https://github.com/oven-sh/bun/issues/28327.
 		const env = { ...process.env };
+		// see https://github.com/oven-sh/bun/issues/28327.
 		if (currentPlatform === "windows") {
 			env.BUN_INSTALL = join(parse(ARRPC_DIR).root, ".bun-compile");
+		}
+		// see https://github.com/oven-sh/bun/issues/29120.
+		if (target.platform === "darwin") {
+			env.BUN_NO_CODESIGN_MACHO_BINARY = "1";
 		}
 		execSync(cmd, {
 			stdio: "inherit",
