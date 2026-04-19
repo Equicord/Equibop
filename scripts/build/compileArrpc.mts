@@ -29,7 +29,8 @@ const TARGETS: CompileTarget[] = [
 	{
 		platform: "darwin",
 		arch: "x64",
-		target: "bun-darwin-x64-baseline",
+
+		target: "bun-darwin-x64",
 		output: "arrpc-darwin-x64"
 	},
 	{
