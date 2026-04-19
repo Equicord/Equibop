@@ -1,6 +1,6 @@
 import { execSync } from "child_process";
 import { existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, parse } from "path";
 
 const OUTPUT_DIR = join(import.meta.dir, "..", "..", "static/dist");
 const ARRPC_DIR = join(import.meta.dir, "..", "..", "node_modules/arrpc-bun");
@@ -90,9 +90,15 @@ for (const target of targetsToCompile) {
 
 	try {
 		const cmd = `bun build ${ARRPC_ENTRY} --compile --target=${target.target} --outfile=${outputPath}`;
+		// see https://github.com/oven-sh/bun/issues/28327.
+		const env = { ...process.env };
+		if (currentPlatform === "windows") {
+			env.BUN_INSTALL = join(parse(ARRPC_DIR).root, ".bun-compile");
+		}
 		execSync(cmd, {
 			stdio: "inherit",
-			cwd: ARRPC_DIR
+			cwd: ARRPC_DIR,
+			env
 		});
 
 		console.log(`Compiled ${target.output}\n`);
