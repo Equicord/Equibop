@@ -10,8 +10,8 @@ import { DATA_DIR, MessageBoxChoice } from "main/constants";
 
 export async function clearData(win: BrowserWindow) {
     const { response } = await dialog.showMessageBox(win, {
-        message: "Are you sure you want to reset Vesktop?",
-        detail: "This will log you out, clear caches and reset all your settings!\n\nVesktop will automatically restart after this operation.",
+        message: "Are you sure you want to reset Equibop?",
+        detail: "This will log you out, clear caches and reset all your settings!\n\nEquibop will automatically restart after this operation.",
         buttons: ["Yes", "No"],
         cancelId: MessageBoxChoice.Cancel,
         defaultId: MessageBoxChoice.Default,

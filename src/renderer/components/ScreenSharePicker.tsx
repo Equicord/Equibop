@@ -6,7 +6,7 @@
 
 import "./screenSharePicker.css";
 
-import { classNameFactory } from "@vencord/types/api/Styles";
+import { classNameFactory } from "@equicord/types/api/Styles";
 import {
     BaseText,
     Button,
@@ -19,7 +19,7 @@ import {
     Paragraph,
     RestartIcon,
     Span
-} from "@vencord/types/components";
+} from "@equicord/types/components";
 import {
     closeModal,
     Logger,
@@ -29,12 +29,11 @@ import {
     openModal,
     useAwaiter,
     useForceUpdater
-} from "@vencord/types/utils";
-import { onceReady } from "@vencord/types/webpack";
-import { FluxDispatcher, MediaEngineStore, Select, UserStore, useState } from "@vencord/types/webpack/common";
+} from "@equicord/types/utils";
+import { onceReady } from "@equicord/types/webpack";
+import { FluxDispatcher, MediaEngineStore, Select, UserStore, useState } from "@equicord/types/webpack/common";
 import { Node } from "@vencord/venmic";
 import type { Dispatch, SetStateAction } from "react";
-import { addPatch } from "renderer/patches/shared";
 import { State, useSettings, useVesktopState } from "renderer/settings";
 import { isLinux, isWindows } from "renderer/utils";
 
@@ -77,52 +76,13 @@ interface Source {
 
 export let currentSettings: StreamSettings | null = null;
 
-const logger = new Logger("VesktopScreenShare");
+const logger = new Logger("EquibopScreenShare");
 
-addPatch({
-    patches: [
-        {
-            find: "this.getDefaultGoliveQuality()",
-            replacement: {
-                match: /this\.getDefaultGoliveQuality\(\)/,
-                replace: "$self.patchStreamQuality($&)"
-            }
-        }
-    ],
-    patchStreamQuality(opts: any) {
-        const { screenshareQuality } = State.store;
-        if (!screenshareQuality) return opts;
-
-        const framerate = Number(screenshareQuality.frameRate);
-        const height = Number(screenshareQuality.resolution);
-        const width = Math.round(height * (16 / 9));
-
-        Object.assign(opts, {
-            bitrateMin: 500000,
-            bitrateMax: 8000000,
-            bitrateTarget: 600000
-        });
-        if (opts?.encode) {
-            Object.assign(opts.encode, {
-                framerate,
-                width,
-                height,
-                pixelCount: height * width
-            });
-        }
-        Object.assign(opts.capture, {
-            framerate,
-            width,
-            height,
-            pixelCount: height * width
-        });
-        return opts;
-    }
-});
+let streamCloseCallback: ((data: any) => void) | null = null;
 
 if (isLinux) {
     onceReady.then(() => {
-        FluxDispatcher.subscribe("STREAM_CLOSE", ({ streamKey }: { streamKey: string }) => {
+        streamCloseCallback = ({ streamKey }: { streamKey: string }) => {
             const owner = streamKey.split(":").at(-1);
 
             if (owner !== UserStore.getCurrentUser().id) {
@@ -130,8 +90,16 @@ if (isLinux) {
             }
 
             VesktopNative.virtmic.stop();
-        });
+        };
+        FluxDispatcher.subscribe("STREAM_CLOSE", streamCloseCallback);
     });
+}
+
+export function cleanupScreenShareSubscriptions() {
+    if (streamCloseCallback) {
+        FluxDispatcher.unsubscribe("STREAM_CLOSE", streamCloseCallback);
+        streamCloseCallback = null;
+    }
 }
 
 export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {

@@ -14,8 +14,14 @@ export const isFirstRun = (() => {
     return true;
 })();
 
-const { platform } = navigator;
+function getPlatform() {
+    const platform = VesktopNative.app.getPlatformSpoofInfo().originalPlatform.toLowerCase();
+    if (platform.startsWith("win")) return "windows";
+    if (platform.startsWith("mac")) return "macos";
+    if (platform.startsWith("linux")) return "linux";
+    return "unknown";
+}
 
-export const isWindows = platform.startsWith("Win");
-export const isMac = platform.startsWith("Mac");
-export const isLinux = platform.startsWith("Linux");
+export const isWindows = getPlatform() === "windows";
+export const isMac = getPlatform() === "macos";
+export const isLinux = getPlatform() === "linux";

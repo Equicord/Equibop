@@ -6,7 +6,7 @@
 
 import { globalExternalsWithRegExp } from "@fal-works/esbuild-plugin-global-externals";
 
-const names = {
+const names: Record<string, string> = {
     webpack: "Vencord.Webpack",
     "webpack/common": "Vencord.Webpack.Common",
     utils: "Vencord.Util",
@@ -17,10 +17,10 @@ const names = {
 
 export default globalExternalsWithRegExp({
     getModuleInfo(modulePath) {
-        const path = modulePath.replace("@vencord/types/", "");
-        let varName = names[path];
+        const path = modulePath.replace("@equicord/types/", "");
+        let varName = names[path] as string | undefined;
         if (!varName) {
-            const altMapping = names[path.split("/")[0]];
+            const altMapping = names[path.split("/")[0]] as string | undefined;
             if (!altMapping) throw new Error("Unknown module path: " + modulePath);
 
             varName =
@@ -34,5 +34,5 @@ export default globalExternalsWithRegExp({
             type: "cjs"
         };
     },
-    modulePathFilter: /^@vencord\/types.+$/
+    modulePathFilter: /^@equicord\/types.+$/
 });

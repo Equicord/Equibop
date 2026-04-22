@@ -4,18 +4,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Card, ErrorBoundary, HeadingTertiary, Paragraph, TextButton } from "@vencord/types/components";
-import { FluxDispatcher, InviteActions } from "@vencord/types/webpack/common";
+import { Card, ErrorBoundary, HeadingTertiary, Paragraph, TextButton } from "@equicord/types/components";
+import { FluxDispatcher, InviteActions } from "@equicord/types/webpack/common";
 import type { PropsWithChildren } from "react";
 
 async function openSupportChannel() {
-    const code = "YVbdG2ZRG4";
-
+    const code = "wKgT9j2xfN";
     try {
         const { invite } = await InviteActions.resolveInvite(code, "Desktop Modal");
-
         if (!invite) throw 0;
-
         await FluxDispatcher.dispatch({
             type: "INVITE_MODAL_OPEN",
             invite,
@@ -32,7 +29,7 @@ function Fallback() {
         <Card variant="danger">
             <HeadingTertiary>Something went wrong.</HeadingTertiary>
             <Paragraph>
-                Please make sure Vencord and Vesktop are fully up to date. You can get help in our{" "}
+                Please make sure Equicord and Equibop are fully up to date. You can get help in our{" "}
                 <TextButton variant="link" onClick={openSupportChannel}>
                     Support Channel
                 </TextButton>

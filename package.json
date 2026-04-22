@@ -1,49 +1,56 @@
 {
-    "name": "vesktop",
-    "version": "1.6.5",
+    "name": "equibop",
+    "desktopName": "equibop",
+    "version": "3.2.0",
     "private": true,
-    "description": "Vesktop is a custom Discord desktop app",
+    "description": "Equibop is a custom Discord desktop app",
     "keywords": [],
-    "homepage": "https://vencord.dev/",
+    "homepage": "https://equicord.org",
     "license": "GPL-3.0-or-later",
-    "author": "Vendicated <vendicated@riseup.net>",
+    "author": "Equicord <contact@equicord.org>",
     "main": "dist/js/main.js",
     "scripts": {
-        "build": "tsx scripts/build/build.mts",
-        "build:dev": "pnpm build --dev",
-        "buildLibVesktop": "pnpm -C packages/libvesktop install && pnpm -C packages/libvesktop run build",
-        "package": "pnpm build && electron-builder",
-        "package:dir": "pnpm build && electron-builder --dir",
+        "build": "bun run scripts/build/build.mts",
+        "build:dev": "bun run build --dev",
+        "buildLibVesktop": "bun install --cwd packages/libvesktop && bun run --cwd packages/libvesktop build",
+        "compileArrpc": "bun run scripts/build/compileArrpc.mts",
+        "package": "bun run build && electron-builder",
+        "package:dir": "bun run build && electron-builder --dir",
         "lint": "eslint",
-        "lint:fix": "pnpm lint --fix",
-        "start": "pnpm build && electron .",
-        "start:dev": "pnpm build:dev && electron .",
-        "start:watch": "pnpm build:dev && tsx scripts/startWatch.mts",
-        "test": "pnpm lint && pnpm testTypes",
+        "lint:fix": "bun lint --fix",
+        "start": "bun run build && electron .",
+        "start:dev": "bun run build:dev && electron .",
+        "start:watch": "bun run build:dev && bun run scripts/startWatch.mts",
+        "test": "bun lint && bun testTypes",
         "testTypes": "tsc --noEmit",
-        "watch": "pnpm build --watch",
-        "generateMeta": "tsx scripts/utils/generateMeta.mts",
-        "updateArrpcDB": "node ./node_modules/arrpc/update_db.js",
-        "postinstall": "pnpm updateArrpcDB"
+        "watch": "bun run build --watch",
+        "generateMeta": "bun run scripts/utils/generateMeta.mts",
+        "updateArrpcDB": "bun ./node_modules/arrpc-bun/scripts/update_db.ts",
+        "postinstall": "bun updateArrpcDB && bun compileArrpc"
     },
     "dependencies": {
-        "arrpc": "github:OpenAsar/arrpc#2234e9c9111f4c42ebcc3aa6a2215bfd979eef77",
-        "electron-updater": "^6.6.2"
+        "@types/ws": "^8.18.1",
+        "@typescript-eslint/eslint-plugin": "^8.58.2",
+        "@typescript-eslint/parser": "^8.58.2",
+        "arrpc-bun": "^1.3.6",
+        "electron-updater": "^6.8.3",
+        "tsutils": "^3.21.0",
+        "ws": "^8.20.0"
     },
     "optionalDependencies": {
         "@vencord/venmic": "^6.1.0"
     },
     "devDependencies": {
+        "@equicord/types": "^1.14.2",
         "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
         "@stylistic/eslint-plugin": "^5.10.0",
-        "@types/node": "^25.5.0",
+        "@types/node": "^25.6.0",
         "@types/react": "19.2.9",
-        "@vencord/types": "^1.14.1",
-        "dotenv": "^17.3.1",
-        "electron": "^41.0.4",
+        "dotenv": "^17.4.2",
+        "electron": "^41.2.1",
         "electron-builder": "^26.8.1",
-        "esbuild": "^0.27.4",
-        "eslint": "^10.1.0",
+        "esbuild": "^0.27.7",
+        "eslint": "^10.2.1",
         "eslint-import-resolver-alias": "^1.1.2",
         "eslint-plugin-path-alias": "^2.1.0",
         "eslint-plugin-prettier": "^5.5.5",
@@ -51,24 +58,22 @@
         "eslint-plugin-simple-header": "^1.2.2",
         "eslint-plugin-simple-import-sort": "^12.1.1",
         "eslint-plugin-unused-imports": "^4.4.1",
-        "libvesktop": "link:packages/libvesktop",
-        "prettier": "^3.8.1",
+        "libvesktop": "file:packages/libvesktop",
+        "prettier": "^3.8.3",
         "source-map-support": "^0.5.21",
         "tsx": "^4.21.0",
-        "type-fest": "^5.5.0",
-        "typescript": "^6.0.2",
-        "typescript-eslint": "^8.57.2",
-        "xml-formatter": "^3.6.7"
+        "type-fest": "^5.6.0",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.58.2",
+        "xml-formatter": "^3.7.0"
     },
-    "packageManager": "pnpm@10.7.1",
     "engines": {
-        "node": ">=18",
-        "pnpm": ">=8"
+        "bun": ">=1.3.0"
     },
     "build": {
-        "appId": "dev.vencord.vesktop",
-        "productName": "Vesktop",
-        "executableName": "vesktop",
+        "appId": "org.equicord.equibop",
+        "productName": "Equibop",
+        "executableName": "equibop",
         "files": [
             "!*",
             "!node_modules",
@@ -88,7 +93,7 @@
         "linux": {
             "icon": "build/icon.svg",
             "category": "Network",
-            "maintainer": "vendicated+vesktop@riseup.net",
+            "maintainer": "contact@equicord.org",
             "target": [
                 {
                     "target": "deb",
@@ -121,13 +126,13 @@
             ],
             "desktop": {
                 "entry": {
-                    "Name": "Vesktop",
+                    "Name": "Equibop",
                     "GenericName": "Internet Messenger",
                     "Type": "Application",
                     "Categories": "Network;InstantMessaging;Chat;",
-                    "Keywords": "discord;vencord;electron;chat;",
+                    "Keywords": "discord;vencord;electron;chat;equibop",
                     "MimeType": "x-scheme-handler/discord",
-                    "StartupWMClass": "vesktop"
+                    "StartupWMClass": "equibop"
                 }
             }
         },
@@ -135,9 +140,7 @@
             "target": [
                 {
                     "target": "default",
-                    "arch": [
-                        "universal"
-                    ]
+                    "arch": "universal"
                 }
             ],
             "category": "public.app-category.social-networking",
@@ -214,15 +217,10 @@
             "grantFileProtocolExtraPrivileges": false
         }
     },
-    "pnpm": {
-        "patchedDependencies": {
-            "arrpc@3.5.0": "patches/arrpc@3.5.0.patch",
-            "electron-updater": "patches/electron-updater.patch"
-        },
-        "onlyBuiltDependencies": [
-            "@vencord/venmic",
-            "electron",
-            "esbuild"
-        ]
-    }
+    "trustedDependencies": [
+        "@vencord/venmic",
+        "electron",
+        "electron-winstaller",
+        "esbuild"
+    ]
 }

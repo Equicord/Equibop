@@ -17,7 +17,8 @@ import tseslint from "typescript-eslint";
 import prettier from "eslint-plugin-prettier";
 
 export default defineConfig(
-    { ignores: ["dist"] },
+    { ignores: ["dist", "src/main/arrpc/bunWorker.ts", "packages/libvesktop", "scripts"] },
+
     {
         files: ["src/**/*.{tsx,ts,mts,mjs,js,jsx}"],
         settings: {

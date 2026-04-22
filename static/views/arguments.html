@@ -1,0 +1,109 @@
+<!doctype html>
+<meta charset="utf-8" />
+
+<head>
+    <title>Launch Arguments</title>
+
+    <link rel="stylesheet" href="./common.css" type="text/css" />
+
+    <style>
+        body {
+            height: 100vh;
+            padding: 1.5em;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin: 0 0 0.5em;
+            font-size: 1.4rem;
+        }
+
+        p {
+            margin: 0 0 1em;
+            font-size: 0.9rem;
+            color: var(--fg-secondary);
+        }
+
+        .warning {
+            background: #ff6b6b22;
+            border: 1px solid #ff6b6b;
+            border-radius: 6px;
+            padding: 0.8em;
+            margin-bottom: 1em;
+            font-size: 0.85rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.6em;
+            background: var(--bg);
+            color: var(--fg);
+            border: 1px solid var(--fg-semi-trans);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--link);
+        }
+
+        #buttons {
+            display: flex;
+            justify-content: end;
+            gap: 0.5em;
+            margin-top: auto;
+        }
+
+        button {
+            padding: 0.6em 1.2em;
+            color: white;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: 200ms filter;
+        }
+
+        button:hover {
+            filter: brightness(0.8);
+        }
+
+        #cancel {
+            background: #666;
+        }
+
+        #save {
+            background: #5865f2;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Launch Arguments</h1>
+    <p>Configure additional command-line arguments passed to Discord. Changes require a restart.</p>
+
+    <div class="warning">
+        Only use arguments you understand. Incorrect arguments may cause instability or security issues.
+    </div>
+
+    <input type="text" id="args" placeholder="--force_high_performance_gpu" />
+
+    <div id="buttons">
+        <button id="cancel">Cancel</button>
+        <button id="save">Save</button>
+    </div>
+</body>
+
+<script>
+    const data = new URLSearchParams(location.search);
+    const argsInput = document.getElementById("args");
+
+    argsInput.value = data.get("CURRENT_ARGS") || "";
+
+    document.getElementById("cancel").onclick = () => console.info("close");
+    document.getElementById("save").onclick = () => console.info("save:" + argsInput.value);
+</script>

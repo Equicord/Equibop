@@ -6,6 +6,9 @@ on:
             - v*
     workflow_dispatch:
 
+permissions:
+    contents: write
+
 jobs:
     release:
         runs-on: ${{ matrix.os }}
@@ -23,24 +26,22 @@ jobs:
 
         steps:
             - uses: actions/checkout@v4
-            - uses: pnpm/action-setup@v4 # Install pnpm using packageManager key in package.json
+            - uses: oven-sh/setup-bun@v2
 
-            - name: Use Node.js 20
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
-                  cache: "pnpm"
+            - name: Install system dependencies
+              if: ${{ matrix.platform == 'linux' }}
+              run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
 
             - name: Install dependencies
-              run: pnpm install --frozen-lockfile
+              run: bun install
 
             - name: Build
-              run: pnpm build
+              run: bun run build
 
             - name: Run Electron Builder
               if: ${{ matrix.platform != 'mac' }}
               run: |
-                  pnpm electron-builder --${{ matrix.platform }} --publish always
+                  bun run electron-builder --${{ matrix.platform }} --publish always
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -48,12 +49,12 @@ jobs:
               if: ${{ matrix.platform == 'mac' }}
               run: |
                   echo "$API_KEY" > apple.p8
-                  pnpm electron-builder --${{ matrix.platform }} --publish always
+                  bun run electron-builder --${{ matrix.platform }} --publish always
               env:
-                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                CSC_LINK: ${{ secrets.APPLE_SIGNING_CERT }}
-                CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-                API_KEY: ${{ secrets.APPLE_API_KEY }}
-                APPLE_API_KEY: apple.p8
-                APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-                APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CSC_LINK: ${{ secrets.APPLE_SIGNING_CERT }}
+                  CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+                  API_KEY: ${{ secrets.APPLE_API_KEY }}
+                  APPLE_API_KEY: apple.p8
+                  APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+                  APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}

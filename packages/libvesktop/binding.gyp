@@ -2,7 +2,10 @@
   "targets": [
     {
       "target_name": "libvesktop",
-      "sources": [ "src/libvesktop.cc" ],
+      "sources": [
+        "src/libvesktop.cc",
+        "src/status_notifier_item.cc"
+      ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")"
       ],

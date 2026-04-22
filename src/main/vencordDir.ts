@@ -10,4 +10,6 @@ import { SESSION_DATA_DIR } from "./constants";
 import { State } from "./settings";
 
 // this is in a separate file to avoid circular dependencies
-export const VENCORD_FILES_DIR = State.store.vencordDir || join(SESSION_DATA_DIR, "vencordFiles");
+export const VENCORD_DIR = State.store.equicordDir
+    ? join(State.store.equicordDir, "equibop")
+    : join(SESSION_DATA_DIR, "equicord.asar");

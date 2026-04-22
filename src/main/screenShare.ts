@@ -8,11 +8,10 @@ import { desktopCapturer, session, Streams } from "electron";
 import type { StreamPick } from "renderer/components/ScreenSharePicker";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 
+import { isWayland } from "./constants";
+import { getPlatformSpoofInfo } from "./gnuSpoofing";
 import { sendRendererCommand } from "./ipcCommands";
 import { handle } from "./utils/ipcWrappers";
-
-const isWayland =
-    process.platform === "linux" && (process.env.XDG_SESSION_TYPE === "wayland" || !!process.env.WAYLAND_DISPLAY);
 
 export function registerScreenShareHandler() {
     handle(IpcEvents.CAPTURER_GET_LARGE_THUMBNAIL, async (_, id: string) => {
@@ -78,7 +77,7 @@ export function registerScreenShareHandler() {
         const streams: Streams = {
             video: source
         };
-        if (choice.audio && process.platform === "win32") streams.audio = "loopback";
+        if (choice.audio && getPlatformSpoofInfo().originalPlatform === "win32") streams.audio = "loopback";
 
         callback(streams);
     });

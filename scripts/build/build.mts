@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { execSync } from "child_process";
 import { BuildContext, BuildOptions, context } from "esbuild";
 import { copyFile } from "fs/promises";
 
@@ -11,6 +12,13 @@ import vencordDep from "./vencordDep.mjs";
 import { includeDirPlugin } from "./includeDirPlugin.mts";
 
 const isDev = process.argv.includes("--dev");
+
+let gitHash: string;
+try {
+    gitHash = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+} catch {
+    gitHash = process.env.FLATPAK_BUILDER_BUILDDIR ? "flatpak" : "unknown";
+}
 
 const CommonOpts: BuildOptions = {
     minify: !isDev,
@@ -23,13 +31,14 @@ const NodeCommonOpts: BuildOptions = {
     ...CommonOpts,
     format: "cjs",
     platform: "node",
-    external: ["electron"],
+    external: ["electron", "original-fs"],
     target: ["esnext"],
     loader: {
         ".node": "file"
     },
     define: {
-        IS_DEV: JSON.stringify(isDev)
+        IS_DEV: JSON.stringify(isDev),
+        EQUIBOP_GIT_HASH: JSON.stringify(gitHash)
     }
 };
 
@@ -64,7 +73,7 @@ async function copyLibVesktop() {
         console.log("Using local libvesktop build");
     } catch {
         console.log(
-            "Using prebuilt libvesktop binaries. Run `pnpm buildLibVesktop` and build again to build from source - see README.md for more details"
+            "Using prebuilt libvesktop binaries. Run `bun buildLibVesktop` and build again to build from source - see README.md for more details"
         );
         return Promise.all([
             copyFile("./packages/libvesktop/prebuilds/vesktop-x64.node", "./static/dist/libvesktop-x64.node"),
@@ -81,12 +90,6 @@ await Promise.all([
         entryPoints: ["src/main/index.ts"],
         outfile: "dist/js/main.js",
         footer: { js: "//# sourceURL=VesktopMain" }
-    }),
-    createContext({
-        ...NodeCommonOpts,
-        entryPoints: ["src/main/arrpc/worker.ts"],
-        outfile: "dist/js/arRpcWorker.js",
-        footer: { js: "//# sourceURL=VesktopArRpcWorker" }
     }),
     createContext({
         ...NodeCommonOpts,
@@ -108,14 +111,14 @@ await Promise.all([
     }),
     createContext({
         ...CommonOpts,
-        globalName: "Vesktop",
+        globalName: "Equibop",
         entryPoints: ["src/renderer/index.ts"],
         outfile: "dist/js/renderer.js",
         format: "iife",
         inject: ["./scripts/build/injectReact.mjs"],
         jsxFactory: "VencordCreateElement",
         jsxFragment: "VencordFragment",
-        external: ["@vencord/types/*"],
+        external: ["@equicord/types/*"],
         plugins: [vencordDep, includeDirPlugin("patches", "src/renderer/patches")],
         footer: { js: "//# sourceURL=VesktopRenderer" }
     })
@@ -124,12 +127,24 @@ await Promise.all([
 const watch = process.argv.includes("--watch");
 
 if (watch) {
-    await Promise.all(contexts.map(ctx => ctx.watch()));
+	await Promise.all(contexts.map((ctx) => ctx.watch()));
 } else {
-    await Promise.all(
-        contexts.map(async ctx => {
-            await ctx.rebuild();
-            await ctx.dispose();
-        })
-    );
+	const results = await Promise.all(
+		contexts.map(async (ctx) => {
+			const result = await ctx.rebuild();
+			await ctx.dispose();
+			return result;
+		}),
+	);
+
+	for (const result of results) {
+		if (result.metafile) {
+			const outputs = Object.keys(result.metafile.outputs);
+			for (const output of outputs) {
+				const meta = result.metafile.outputs[output];
+				const size = (meta.bytes / 1024).toFixed(2);
+				console.log(`  ${output} ${size} KB`);
+			}
+		}
+	}
 }

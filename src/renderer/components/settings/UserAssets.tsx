@@ -6,7 +6,7 @@
 
 import "./UserAssets.css";
 
-import { BaseText, Button, FormSwitch } from "@vencord/types/components";
+import { BaseText, Button, FormSwitch } from "@equicord/types/components";
 import {
     Margins,
     ModalCloseButton,
@@ -17,14 +17,22 @@ import {
     openModal,
     wordsFromCamel,
     wordsToTitle
-} from "@vencord/types/utils";
-import { showToast, useState } from "@vencord/types/webpack/common";
+} from "@equicord/types/utils";
+import { showToast, useState } from "@equicord/types/webpack/common";
 import { UserAssetType } from "main/userAssets";
 import { useSettings } from "renderer/settings";
 
 import { SettingsComponent } from "./Settings";
 
-const CUSTOMIZABLE_ASSETS: UserAssetType[] = ["splash", "tray", "trayUnread"];
+const CUSTOMIZABLE_ASSETS: UserAssetType[] = [
+    "splash",
+    "tray",
+    "trayUnread",
+    "traySpeaking",
+    "trayIdle",
+    "trayMuted",
+    "trayDeafened"
+];
 
 export const UserAssetsButton: SettingsComponent = () => {
     return <Button onClick={() => openAssetsModal()}>Customize App Assets</Button>;
@@ -79,7 +87,7 @@ function Asset({ asset }: { asset: UserAssetType }) {
             <div className="vcd-user-assets-asset">
                 <img
                     className="vcd-user-assets-image"
-                    src={`vesktop://assets/${asset}?v=${version}`}
+                    src={`equibop://assets/${asset}?v=${version}`}
                     alt=""
                     style={{ imageRendering }}
                 />

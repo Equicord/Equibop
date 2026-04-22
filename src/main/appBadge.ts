@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { app, NativeImage, nativeImage } from "electron";
+import { app, type NativeImage, nativeImage } from "electron";
 import { join } from "path";
 import { BADGE_DIR } from "shared/paths";
 
@@ -24,17 +24,33 @@ function loadBadge(index: number) {
 }
 
 let lastIndex: null | number = -1;
+let isInVoiceCall = false;
+
+const voiceStateListener = (inCall: boolean) => {
+    isInVoiceCall = inCall;
+};
+
+if (!AppEvents.listeners("voiceCallStateChanged").includes(voiceStateListener)) {
+    AppEvents.on("voiceCallStateChanged", voiceStateListener);
+}
+
+export function destroyAppBadge() {
+    AppEvents.off("voiceCallStateChanged", voiceStateListener);
+    imgCache.clear();
+}
 
 /**
  * -1 = show unread indicator
  * 0 = clear
  */
 export function setBadgeCount(count: number) {
-    AppEvents.emit("setTrayVariant", count !== 0 ? "trayUnread" : "tray");
+    if (!isInVoiceCall) {
+        AppEvents.emit("setTrayVariant", count !== 0 ? "trayUnread" : "tray");
+    }
 
     switch (process.platform) {
         case "linux":
-            if (count === -1) count = 0;
+            // if (count === -1) count = 0;
             updateUnityLauncherCount(count);
             break;
         case "darwin":
@@ -44,7 +60,7 @@ export function setBadgeCount(count: number) {
             }
             app.dock!.setBadge(count === -1 ? "•" : count.toString());
             break;
-        case "win32":
+        case "win32": {
             const [index, description] = getBadgeIndexAndDescription(count);
             if (lastIndex === index) break;
 
@@ -52,6 +68,7 @@ export function setBadgeCount(count: number) {
 
             mainWin.setOverlayIcon(index === null ? null : loadBadge(index), description);
             break;
+        }
     }
 }
 

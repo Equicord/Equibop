@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { filters, waitFor } from "@vencord/types/webpack";
-import { RelationshipStore } from "@vencord/types/webpack/common";
+import { filters, waitFor } from "@equicord/types/webpack";
+import { RelationshipStore } from "@equicord/types/webpack/common";
 
 import { VesktopLogger } from "./logger";
 import { Settings } from "./settings";
@@ -23,7 +23,10 @@ export function setBadge() {
         const disableUnreadBadge = NotificationSettingsStore.getDisableUnreadBadge();
 
         let totalCount = mentionCount + pendingRequests;
-        if (!totalCount && hasUnread && !disableUnreadBadge) totalCount = -1;
+
+        if (!Settings.store.badgeOnlyForMentions && !totalCount && hasUnread && !disableUnreadBadge) {
+            totalCount = -1;
+        }
 
         VesktopNative.app.setBadgeCount(totalCount);
     } catch (e) {

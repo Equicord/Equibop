@@ -31,6 +31,44 @@
             background: var(--bg);
         }
 
+        #progress-section {
+            width: 100%;
+        }
+
+        .progressbar {
+            position: relative;
+            height: 17.5px;
+            width: auto;
+            box-sizing: border-box;
+            margin-left: 16px;
+            margin-right: 16px;
+            background-color: color-mix(in srgb, var(--bg), black 20%);
+            border: 1px solid color-mix(in srgb, var(--fg-semi-trans), white 10%);
+            border-radius: 4px;
+        }
+
+        .progressbar #progress {
+            height: 100%;
+            width: 0%;
+            max-width: 100%;
+            background-color: color-mix(in srgb, var(--fg-semi-trans), black 10%);
+            border-radius: 4px;
+            transition: width 0.5s ease-in;
+        }
+
+        .progressbar #progress-percentage {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            outline: 1px solid var(--fg-semi-trans);
+        }
+
         .message {
             top: 70%;
             word-break: break-word;
@@ -53,9 +91,16 @@
 
 <body>
     <div class="wrapper">
-        <img draggable="false" src="vesktop://assets/splash" alt="" role="presentation" />
-        <p>Loading Vesktop...</p>
+        <img draggable="false" src="equibop://assets/splash" alt="" role="presentation" />
+        <p>Loading Equibop...</p>
         <p class="message"></p>
+
+        <div id="progress-section">
+            <div class="progressbar">
+                <span id="progress-percentage">0%</span>
+                <div id="progress"></div>
+            </div>
+        </div>
     </div>
 </body>
 

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { useEffect, useReducer } from "@vencord/types/webpack/common";
+import { useEffect, useReducer } from "@equicord/types/webpack/common";
 import { SettingsStore } from "shared/utils/SettingsStore";
 
 import { VesktopLogger } from "./logger";
@@ -39,7 +39,7 @@ interface TState {
     };
 }
 
-const stateKey = "VesktopState";
+const stateKey = "EquibopState";
 
 const currentState: TState = (() => {
     const stored = localStorage.getItem(stateKey);

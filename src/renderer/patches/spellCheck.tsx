@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { addContextMenuPatch } from "@vencord/types/api/ContextMenu";
-import { FluxDispatcher, Menu, SpellCheckStore, useMemo, useStateFromStores } from "@vencord/types/webpack/common";
+import { addContextMenuPatch } from "@equicord/types/api/ContextMenu";
+import { FluxDispatcher, Menu, SpellCheckStore, useMemo, useStateFromStores } from "@equicord/types/webpack/common";
 import { useSettings } from "renderer/settings";
 
 import { addPatch } from "./shared";

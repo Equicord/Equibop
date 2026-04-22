@@ -4,45 +4,53 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { join } from "node:path";
+
 import {
     app,
     BrowserWindow,
-    BrowserWindowConstructorOptions,
+    type BrowserWindowConstructorOptions,
     Menu,
-    MenuItemConstructorOptions,
+    type MenuItemConstructorOptions,
     nativeTheme,
-    Rectangle,
+    type Rectangle,
     screen,
     session
 } from "electron";
-import { join } from "path";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
+import { STATIC_DIR } from "shared/paths";
 import { isTruthy } from "shared/utils/guards";
 import { once } from "shared/utils/once";
 import type { SettingsStore } from "shared/utils/SettingsStore";
 
 import { createAboutWindow } from "./about";
-import { initArRPC } from "./arrpc";
+import { destroyAppBadge } from "./appBadge";
+import { cleanupArRPC, initArRPC, setupArRPC } from "./arrpc";
 import { CommandLine } from "./cli";
-import { BrowserUserAgent, DEFAULT_HEIGHT, DEFAULT_WIDTH, MIN_HEIGHT, MIN_WIDTH } from "./constants";
+import { BrowserUserAgent, DEFAULT_HEIGHT, DEFAULT_WIDTH, isLinux, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { AppEvents } from "./events";
-import { darwinURL } from "./index";
+import { spoofGnu } from "./gnuSpoofing";
 import { sendRendererCommand } from "./ipcCommands";
+import { initKeybinds } from "./keybinds";
 import { Settings, State, VencordSettings } from "./settings";
-import { createSplashWindow, updateSplashMessage } from "./splash";
+import { addSplashLog, createSplashWindow, updateSplashMessage } from "./splash";
+import { darwinURL } from "./startup";
 import { destroyTray, initTray } from "./tray";
 import { clearData } from "./utils/clearData";
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
 import { applyDeckKeyboardFix, askToApplySteamLayout, isDeckGameMode } from "./utils/steamOS";
-import { downloadVencordFiles, ensureVencordFiles, vencordSupportsSandboxing } from "./utils/vencordLoader";
-import { VENCORD_FILES_DIR } from "./vencordFilesDir";
+import { downloadVencordAsar, ensureVencordFiles } from "./utils/vencordLoader";
+import { VENCORD_DIR } from "./vencordDir";
 
 let isQuitting = false;
 
 applyDeckKeyboardFix();
 
-app.on("before-quit", () => {
+app.on("before-quit", async () => {
     isQuitting = true;
+    destroyTray();
+    destroyAppBadge();
+    await cleanupArRPC();
 });
 
 export let mainWin: BrowserWindow;
@@ -77,29 +85,31 @@ function initMenuBar(win: BrowserWindow) {
 
     const subMenu = [
         {
-            label: "About Vesktop",
+            label: "About Equibop",
             click: createAboutWindow
         },
         {
-            label: "Force Update Vencord",
+            label: "Force Update Equicord",
             async click() {
-                await downloadVencordFiles();
+                await downloadVencordAsar();
+                destroyTray();
                 app.relaunch();
                 app.quit();
             },
-            toolTip: "Vesktop will automatically restart after this operation"
+            toolTip: "Equibop will automatically restart after this operation"
         },
         {
-            label: "Reset Vesktop",
+            label: "Reset Equibop",
             async click() {
                 await clearData(win);
             },
-            toolTip: "Vesktop will automatically restart after this operation"
+            toolTip: "Equibop will automatically restart after this operation"
         },
         {
             label: "Relaunch",
             accelerator: "CmdOrCtrl+Shift+R",
             click() {
+                destroyTray();
                 app.relaunch();
                 app.quit();
             }
@@ -161,7 +171,7 @@ function initMenuBar(win: BrowserWindow) {
 
     const menuItems = [
         {
-            label: "Vesktop",
+            label: "Equibop",
             role: "appMenu",
             submenu: subMenu.filter(isTruthy)
         },
@@ -235,7 +245,7 @@ function initSettingsListeners(win: BrowserWindow) {
     addSettingsListener("spellCheckLanguages", languages => initSpellCheckLanguages(win, languages));
 }
 
-async function initSpellCheckLanguages(win: BrowserWindow, languages?: string[]) {
+async function initSpellCheckLanguages(_win: BrowserWindow, languages?: string[]) {
     languages ??= await sendRendererCommand(IpcCommands.GET_LANGUAGES);
     if (!languages) return;
 
@@ -270,7 +280,7 @@ function initStaticTitle(win: BrowserWindow) {
 
     addSettingsListener("staticTitle", enabled => {
         if (enabled) {
-            win.setTitle("Vesktop");
+            win.setTitle("Equibop");
             win.on("page-title-updated", listener);
         } else {
             win.off("page-title-updated", listener);
@@ -279,6 +289,8 @@ function initStaticTitle(win: BrowserWindow) {
 }
 
 function getWindowBoundsOptions(): BrowserWindowConstructorOptions {
+    addSplashLog();
+
     // We want the default window behaviour to apply in game mode since it expects everything to be fullscreen and maximized.
     if (isDeckGameMode) return {};
 
@@ -312,6 +324,8 @@ function getWindowBoundsOptions(): BrowserWindowConstructorOptions {
 }
 
 function buildBrowserWindowOptions(): BrowserWindowConstructorOptions {
+    addSplashLog();
+
     const { staticTitle, transparencyOption, enableMenu, customTitleBar, splashTheming, splashBackground } =
         Settings.store;
 
@@ -324,13 +338,21 @@ function buildBrowserWindowOptions(): BrowserWindowConstructorOptions {
     const options: BrowserWindowConstructorOptions = {
         show: Settings.store.enableSplashScreen === false && !CommandLine.values["start-minimized"],
         backgroundColor,
+        ...(process.platform === "win32"
+            ? { icon: join(STATIC_DIR, "icon.ico") }
+            : process.platform === "linux"
+              ? { icon: join(STATIC_DIR, "icon.png") }
+              : {}),
         webPreferences: {
             nodeIntegration: false,
-            sandbox: vencordSupportsSandboxing(),
+            sandbox: true,
             contextIsolation: true,
             devTools: true,
             preload: join(__dirname, "preload.js"),
             spellcheck: true,
+            ...(Settings.store.middleClickAutoscroll && {
+                enableBlinkFeatures: "MiddleClickAutoscroll"
+            }),
             // disable renderer backgrounding to prevent the app from unloading when in the background
             backgroundThrottling: false
         },
@@ -354,7 +376,7 @@ function buildBrowserWindowOptions(): BrowserWindowConstructorOptions {
     }
 
     if (staticTitle) {
-        options.title = "Vesktop";
+        options.title = "Equibop";
     }
 
     if (process.platform === "darwin") {
@@ -377,8 +399,15 @@ function createMainWindow() {
 
     const win = (mainWin = new BrowserWindow(buildBrowserWindowOptions()));
 
+    win.webContents.setMaxListeners(15);
     win.setMenuBarVisibility(false);
+
+    addSplashLog();
+
     if (process.platform === "darwin" && Settings.store.customTitleBar) win.setWindowButtonVisibility(false);
+    if (process.platform !== "win32" && CommandLine.values["windows-spoof"]) {
+        spoofGnu(win);
+    }
 
     win.on("close", e => {
         const useTray = !isDeckGameMode && Settings.store.minimizeToTray !== false && Settings.store.tray !== false;
@@ -407,17 +436,21 @@ function createMainWindow() {
     initDevtoolsListeners(win);
     initStaticTitle(win);
 
+    addSplashLog();
+
     win.webContents.setUserAgent(BrowserUserAgent);
+    addSplashLog();
 
     // if the open-url event is fired (in index.ts) while starting up, darwinURL will be set. If not fall back to checking the process args (which Windows and Linux use for URI calling.)
     // win.webContents.session.clearCache().then(() => {
     loadUrl(darwinURL || process.argv.find(arg => arg.startsWith("discord://")));
+    addSplashLog();
     // });
 
     return win;
 }
 
-const runVencordMain = once(() => require(join(VENCORD_FILES_DIR, "vencordDesktopMain.js")));
+const runVencordMain = once(() => require(VENCORD_DIR));
 
 export function loadUrl(uri: string | undefined) {
     const branch = Settings.store.discordBranch;
@@ -442,35 +475,38 @@ export async function createWindows() {
 
     let splash: BrowserWindow | undefined;
     if (Settings.store.enableSplashScreen !== false) {
-        splash = createSplashWindow(startMinimized);
+        splash = await createSplashWindow(startMinimized);
 
         // SteamOS letterboxes and scales it terribly, so just full screen it
         if (isDeckGameMode) splash.setFullScreen(true);
+        addSplashLog();
     }
 
+    addSplashLog();
     await ensureVencordFiles();
     runVencordMain();
 
+    addSplashLog();
     mainWin = createMainWindow();
 
     AppEvents.on("appLoaded", () => {
         splash?.destroy();
 
         if (!startMinimized) {
-            if (splash) mainWin!.show();
-            if (State.store.maximized && !isDeckGameMode) mainWin!.maximize();
+            if (splash) mainWin?.show();
+            if (State.store.maximized && !isDeckGameMode) mainWin?.maximize();
         }
 
         if (isDeckGameMode) {
             // always use entire display
-            mainWin!.setFullScreen(true);
+            mainWin?.setFullScreen(true);
 
             askToApplySteamLayout(mainWin);
         }
 
         mainWin.once("show", () => {
-            if (State.store.maximized && !mainWin!.isMaximized() && !isDeckGameMode) {
-                mainWin!.maximize();
+            if (State.store.maximized && !mainWin?.isMaximized() && !isDeckGameMode) {
+                mainWin?.maximize();
             }
         });
     });
@@ -486,5 +522,7 @@ export async function createWindows() {
     });
 
     mainWin.webContents.on("render-process-gone", (event, details) => console.log(details));
+    setupArRPC();
     initArRPC();
+    if (isLinux) initKeybinds();
 }

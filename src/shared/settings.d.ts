@@ -12,6 +12,7 @@ export interface Settings {
     tray?: boolean;
     minimizeToTray?: boolean;
     autoStartMinimized?: boolean;
+    middleClickAutoscroll?: boolean;
     openLinksWithElectron?: boolean;
     staticTitle?: boolean;
     enableMenu?: boolean;
@@ -19,7 +20,19 @@ export interface Settings {
     hardwareAcceleration?: boolean;
     hardwareVideoAcceleration?: boolean;
     arRPC?: boolean;
+    arRPCDisabled?: boolean;
+    arRPCDebug?: boolean;
+    arRPCProcessScanning?: boolean;
+    arRPCBridge?: boolean;
+    arRPCBridgePort?: number;
+    arRPCBridgeHost?: string;
+    arRPCWebSocketHost?: string;
+    arRPCWebSocketAutoReconnect?: boolean;
+    arRPCWebSocketReconnectInterval?: number;
+    arRPCWebSocketCustomHost?: string;
+    arRPCWebSocketCustomPort?: number;
     appBadge?: boolean;
+    badgeOnlyForMentions?: boolean;
     enableTaskbarFlashing?: boolean;
     disableMinSize?: boolean;
     clickTrayToShowHide?: boolean;
@@ -29,6 +42,7 @@ export interface Settings {
     splashTheming?: boolean;
     splashColor?: string;
     splashBackground?: string;
+    splashProgress?: boolean;
     splashPixelated?: boolean;
 
     spellCheckLanguages?: string[];
@@ -58,7 +72,9 @@ export interface State {
     steamOSLayoutVersion?: number;
     linuxAutoStartEnabled?: boolean;
 
-    vencordDir?: string;
+    equicordDir?: string;
+
+    launchArguments?: string;
 
     updater?: {
         ignoredVersion?: string;

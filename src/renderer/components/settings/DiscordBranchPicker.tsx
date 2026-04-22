@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Select } from "@vencord/types/webpack/common";
+import { Select } from "@equicord/types/webpack/common";
 
 import { SimpleErrorBoundary } from "../SimpleErrorBoundary";
 import { SettingsComponent } from "./Settings";

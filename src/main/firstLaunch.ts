@@ -9,6 +9,7 @@ import { BrowserWindow } from "electron/main";
 import { copyFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
 import { SplashProps } from "shared/browserWinProperties";
+import { STATIC_DIR } from "shared/paths";
 
 import { autoStart } from "./autoStart";
 import { DATA_DIR } from "./constants";
@@ -31,6 +32,11 @@ export function createFirstLaunchTour() {
         transparent: false,
         frame: true,
         autoHideMenuBar: true,
+        ...(process.platform === "win32"
+            ? { icon: join(STATIC_DIR, "icon.ico") }
+            : process.platform === "linux"
+              ? { icon: join(STATIC_DIR, "icon.png") }
+              : {}),
         height: 550,
         width: 600
     });

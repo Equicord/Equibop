@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createWriteStream } from "fs";
+import { createWriteStream, mkdirSync } from "original-fs";
+import { dirname } from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { setTimeout } from "timers/promises";
@@ -15,6 +16,9 @@ interface FetchieOptions {
 
 export async function downloadFile(url: string, file: string, options: RequestInit = {}, fetchieOpts?: FetchieOptions) {
     const res = await fetchie(url, options, fetchieOpts);
+
+    mkdirSync(dirname(file), { recursive: true });
+
     await pipeline(
         // @ts-expect-error odd type error
         Readable.fromWeb(res.body!),

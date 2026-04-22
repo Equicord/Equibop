@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText, Button, Heading, Paragraph, TextButton } from "@vencord/types/components";
+import { BaseText, Button, Heading, Paragraph, TextButton } from "@equicord/types/components";
 import {
     Margins,
     ModalCloseButton,
@@ -14,8 +14,8 @@ import {
     ModalSize,
     openModal,
     useForceUpdater
-} from "@vencord/types/utils";
-import { Toasts } from "@vencord/types/webpack/common";
+} from "@equicord/types/utils";
+import { Toasts } from "@equicord/types/webpack/common";
 import { Settings } from "shared/settings";
 
 import { cl, SettingsComponent } from "./Settings";
@@ -29,15 +29,15 @@ function openDeveloperOptionsModal(settings: Settings) {
         <ModalRoot {...props} size={ModalSize.MEDIUM}>
             <ModalHeader>
                 <BaseText size="lg" weight="semibold" tag="h3" style={{ flexGrow: 1 }}>
-                    Vesktop Developer Options
+                    Equibop Developer Options
                 </BaseText>
                 <ModalCloseButton onClick={props.onClose} />
             </ModalHeader>
 
             <ModalContent>
                 <div style={{ padding: "1em 0" }}>
-                    <Heading tag="h5">Vencord Location</Heading>
-                    <VencordLocationPicker settings={settings} />
+                    <Heading tag="h5">Equicord Location</Heading>
+                    <EquicordLocationPicker settings={settings} />
 
                     <Heading tag="h5" className={Margins.top16}>
                         Debugging
@@ -54,15 +54,15 @@ function openDeveloperOptionsModal(settings: Settings) {
     ));
 }
 
-const VencordLocationPicker: SettingsComponent = ({ settings }) => {
+const EquicordLocationPicker: SettingsComponent = ({ settings }) => {
     const forceUpdate = useForceUpdater();
-    const usingCustomVencordDir = VesktopNative.fileManager.isUsingCustomVencordDir();
+    const usingCustomEquicordDir = VesktopNative.fileManager.isUsingCustomVencordDir();
 
     return (
         <>
             <Paragraph>
-                Vencord files are loaded from{" "}
-                {usingCustomVencordDir ? (
+                Equicord files are loaded from{" "}
+                {usingCustomEquicordDir ? (
                     <TextButton
                         variant="link"
                         onClick={e => {
@@ -78,14 +78,15 @@ const VencordLocationPicker: SettingsComponent = ({ settings }) => {
             </Paragraph>
             <div className={cl("button-grid")}>
                 <Button
+                    size={"small"}
                     onClick={async () => {
-                        const choice = await VesktopNative.fileManager.selectVencordDir();
+                        const choice = await VesktopNative.fileManager.selectEquicordDir();
                         switch (choice) {
                             case "cancelled":
                                 break;
                             case "ok":
                                 Toasts.show({
-                                    message: "Vencord install changed. Fully restart Vesktop to apply.",
+                                    message: "Equicord install changed. Fully restart Equibop to apply.",
                                     id: Toasts.genId(),
                                     type: Toasts.Type.SUCCESS
                                 });
@@ -93,7 +94,7 @@ const VencordLocationPicker: SettingsComponent = ({ settings }) => {
                             case "invalid":
                                 Toasts.show({
                                     message:
-                                        "You did not choose a valid Vencord install. Make sure you're selecting the dist dir!",
+                                        "You did not choose a valid Equicord install. Make sure you're selecting the dist dir!",
                                     id: Toasts.genId(),
                                     type: Toasts.Type.FAILURE
                                 });
@@ -105,9 +106,10 @@ const VencordLocationPicker: SettingsComponent = ({ settings }) => {
                     Change
                 </Button>
                 <Button
+                    size={"small"}
                     variant="dangerPrimary"
                     onClick={async () => {
-                        await VesktopNative.fileManager.selectVencordDir(null);
+                        await VesktopNative.fileManager.selectEquicordDir(null);
                         forceUpdate();
                     }}
                 >

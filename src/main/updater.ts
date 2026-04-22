@@ -8,6 +8,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { autoUpdater, UpdateInfo } from "electron-updater";
 import { join } from "path";
 import { IpcEvents, UpdaterIpcEvents } from "shared/IpcEvents";
+import { STATIC_DIR } from "shared/paths";
 import { Millis } from "shared/utils/millis";
 
 import { State } from "./settings";
@@ -44,8 +45,13 @@ handle(IpcEvents.UPDATER_OPEN, async () => {
 
 function openUpdater(update: UpdateInfo) {
     updaterWindow = new BrowserWindow({
-        title: "Vesktop Updater",
+        title: "Equibop Updater",
         autoHideMenuBar: true,
+        ...(process.platform === "win32"
+            ? { icon: join(STATIC_DIR, "icon.ico") }
+            : process.platform === "linux"
+              ? { icon: join(STATIC_DIR, "icon.png") }
+              : {}),
         webPreferences: {
             preload: join(__dirname, "updaterPreload.js")
         },

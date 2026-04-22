@@ -6,19 +6,11 @@
 #include <optional>
 #include <cmath>
 #include <memory>
-
-template <typename T>
-struct GObjectDeleter
-{
-    void operator()(T *obj) const
-    {
-        if (obj)
-            g_object_unref(obj);
-    }
-};
-
-template <typename T>
-using GObjectPtr = std::unique_ptr<T, GObjectDeleter<T>>;
+#include <map>
+#include <string>
+#include <vector>
+#include <cstring>
+#include "status_notifier_item.h"
 
 struct GVariantDeleter
 {
@@ -213,6 +205,10 @@ bool request_background(bool autostart, const std::vector<std::string> &commandl
     return true;
 }
 
+static std::unique_ptr<StatusNotifierItem> g_sni_instance;
+static Napi::ThreadSafeFunction g_menu_click_callback;
+static Napi::ThreadSafeFunction g_activate_callback;
+
 Napi::Value updateUnityLauncherCount(Napi::CallbackInfo const &info)
 {
     if (info.Length() < 1 || !info[0].IsNumber())
@@ -258,11 +254,251 @@ Napi::Value RequestBackground(const Napi::CallbackInfo &info)
     return Napi::Boolean::New(env, ok);
 }
 
+Napi::Value InitStatusNotifierItem(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (g_sni_instance)
+    {
+        return Napi::Boolean::New(env, true);
+    }
+
+    g_sni_instance = std::make_unique<StatusNotifierItem>();
+    bool success = g_sni_instance->initialize();
+
+    if (!success)
+    {
+        g_sni_instance.reset();
+        return Napi::Boolean::New(env, false);
+    }
+
+    return Napi::Boolean::New(env, true);
+}
+
+Napi::Value SetStatusNotifierIcon(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 1 || !info[0].IsBuffer())
+    {
+        Napi::TypeError::New(env, "Expected (Buffer)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (!g_sni_instance)
+    {
+        Napi::Error::New(env, "StatusNotifierItem not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    Napi::Buffer<uint8_t> buffer = info[0].As<Napi::Buffer<uint8_t>>();
+    std::vector<uint8_t> pixmap_data(buffer.Data(), buffer.Data() + buffer.Length());
+
+    bool success = g_sni_instance->set_icon_pixmap(pixmap_data);
+
+    return Napi::Boolean::New(env, success);
+}
+
+Napi::Value SetStatusNotifierTitle(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 1 || !info[0].IsString())
+    {
+        Napi::TypeError::New(env, "Expected (string)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (!g_sni_instance)
+    {
+        Napi::Error::New(env, "StatusNotifierItem not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    std::string title = info[0].As<Napi::String>().Utf8Value();
+    bool success = g_sni_instance->set_title(title);
+
+    return Napi::Boolean::New(env, success);
+}
+
+Napi::Value SetStatusNotifierMenu(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 1 || !info[0].IsArray())
+    {
+        Napi::TypeError::New(env, "Expected (array)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (!g_sni_instance)
+    {
+        Napi::Error::New(env, "StatusNotifierItem not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    Napi::Array menu_array = info[0].As<Napi::Array>();
+    std::vector<MenuItem> items;
+
+    for (uint32_t i = 0; i < menu_array.Length(); i++)
+    {
+        Napi::Value item_value = menu_array.Get(i);
+        if (!item_value.IsObject())
+            continue;
+
+        Napi::Object item_obj = item_value.As<Napi::Object>();
+
+        MenuItem item;
+        item.id = item_obj.Get("id").As<Napi::Number>().Int32Value();
+        item.label = item_obj.Has("label") ? item_obj.Get("label").As<Napi::String>().Utf8Value() : "";
+        item.enabled = item_obj.Has("enabled") ? item_obj.Get("enabled").As<Napi::Boolean>().Value() : true;
+        item.visible = item_obj.Has("visible") ? item_obj.Get("visible").As<Napi::Boolean>().Value() : true;
+        item.is_separator = item_obj.Has("type") && item_obj.Get("type").As<Napi::String>().Utf8Value() == "separator";
+
+        items.push_back(item);
+    }
+
+    bool success = g_sni_instance->set_menu(items);
+
+    return Napi::Boolean::New(env, success);
+}
+
+Napi::Value UpdateStatusNotifierMenuItem(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 2 || !info[0].IsNumber() || !info[1].IsString())
+    {
+        Napi::TypeError::New(env, "Expected (number, string)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (!g_sni_instance)
+    {
+        Napi::Error::New(env, "StatusNotifierItem not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    int32_t id = info[0].As<Napi::Number>().Int32Value();
+    std::string label = info[1].As<Napi::String>().Utf8Value();
+
+    bool success = g_sni_instance->update_menu_item_label(id, label);
+
+    return Napi::Boolean::New(env, success);
+}
+
+Napi::Value DestroyStatusNotifierItem(const Napi::CallbackInfo &info)
+{
+    if (g_sni_instance)
+    {
+        g_sni_instance.reset();
+    }
+    if (g_menu_click_callback)
+    {
+        g_menu_click_callback.Release();
+    }
+    if (g_activate_callback)
+    {
+        g_activate_callback.Release();
+    }
+    return info.Env().Undefined();
+}
+
+Napi::Value SetStatusNotifierMenuClickCallback(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 1 || !info[0].IsFunction())
+    {
+        Napi::TypeError::New(env, "Expected (function)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (!g_sni_instance)
+    {
+        Napi::Error::New(env, "StatusNotifierItem not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (g_menu_click_callback)
+    {
+        g_menu_click_callback.Release();
+    }
+
+    g_menu_click_callback = Napi::ThreadSafeFunction::New(
+        env,
+        info[0].As<Napi::Function>(),
+        "MenuClickCallback",
+        0,
+        1
+    );
+
+    g_sni_instance->set_menu_click_callback([](int32_t id) {
+        if (g_menu_click_callback)
+        {
+            g_menu_click_callback.BlockingCall([id](Napi::Env env, Napi::Function jsCallback) {
+                jsCallback.Call({Napi::Number::New(env, id)});
+            });
+        }
+    });
+
+    return Napi::Boolean::New(env, true);
+}
+
+Napi::Value SetStatusNotifierActivateCallback(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 1 || !info[0].IsFunction())
+    {
+        Napi::TypeError::New(env, "Expected (function)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (!g_sni_instance)
+    {
+        Napi::Error::New(env, "StatusNotifierItem not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (g_activate_callback)
+    {
+        g_activate_callback.Release();
+    }
+
+    g_activate_callback = Napi::ThreadSafeFunction::New(
+        env,
+        info[0].As<Napi::Function>(),
+        "ActivateCallback",
+        0,
+        1
+    );
+
+    g_sni_instance->set_activate_callback([]() {
+        if (g_activate_callback)
+        {
+            g_activate_callback.BlockingCall([](Napi::Env env, Napi::Function jsCallback) {
+                jsCallback.Call({});
+            });
+        }
+    });
+
+    return Napi::Boolean::New(env, true);
+}
+
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     exports.Set("updateUnityLauncherCount", Napi::Function::New(env, updateUnityLauncherCount));
     exports.Set("getAccentColor", Napi::Function::New(env, getAccentColor));
     exports.Set("requestBackground", Napi::Function::New(env, RequestBackground));
+    exports.Set("initStatusNotifierItem", Napi::Function::New(env, InitStatusNotifierItem));
+    exports.Set("setStatusNotifierIcon", Napi::Function::New(env, SetStatusNotifierIcon));
+    exports.Set("setStatusNotifierTitle", Napi::Function::New(env, SetStatusNotifierTitle));
+    exports.Set("setStatusNotifierMenu", Napi::Function::New(env, SetStatusNotifierMenu));
+    exports.Set("updateStatusNotifierMenuItem", Napi::Function::New(env, UpdateStatusNotifierMenuItem));
+    exports.Set("setStatusNotifierMenuClickCallback", Napi::Function::New(env, SetStatusNotifierMenuClickCallback));
+    exports.Set("setStatusNotifierActivateCallback", Napi::Function::New(env, SetStatusNotifierActivateCallback));
+    exports.Set("destroyStatusNotifierItem", Napi::Function::New(env, DestroyStatusNotifierItem));
     return exports;
 }
 

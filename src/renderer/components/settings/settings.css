@@ -38,4 +38,35 @@
     margin-bottom: 1em;
     display: grid;
     gap: 0.5em;
+
+    border-radius: 8px;
+    background-color: var(--bg-secondary);
+    background: var(--background-feedback-warning);
+    border: 1px solid var(--info-warning-foreground);
+    color: var(--text-feedback-warning);
+}
+
+/* arguments */
+
+.vcd-custom-tray-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vcd-tray-settings {
+    padding: 16px 0;
+}
+
+.vcd-tray-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vcd-tray-settings-labels {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }

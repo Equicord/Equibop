@@ -20,6 +20,13 @@ ipcRenderer.on(IpcEvents.SPELLCHECK_RESULT, (_, w: string, s: string[]) => {
     spellCheckCallbacks.forEach(cb => cb(w, s));
 });
 
+type ArRPCActivityCallback = (data: any) => void;
+const arrpcActivityCallbacks = new Set<ArRPCActivityCallback>();
+
+ipcRenderer.on(IpcEvents.ARRPC_ACTIVITY, (_, data: any) => {
+    arrpcActivityCallbacks.forEach(cb => cb(data));
+});
+
 let onDevtoolsOpen = () => {};
 let onDevtoolsClose = () => {};
 
@@ -30,12 +37,19 @@ export const VesktopNative = {
     app: {
         relaunch: () => invoke<void>(IpcEvents.RELAUNCH),
         getVersion: () => sendSync<void>(IpcEvents.GET_VERSION),
+        getGitHash: () => sendSync<string>(IpcEvents.GET_GIT_HASH),
+        isDevBuild: () => IS_DEV,
         setBadgeCount: (count: number) => invoke<void>(IpcEvents.SET_BADGE_COUNT, count),
         supportsWindowsTransparency: () => sendSync<boolean>(IpcEvents.SUPPORTS_WINDOWS_TRANSPARENCY),
         getEnableHardwareAcceleration: () => sendSync<boolean>(IpcEvents.GET_ENABLE_HARDWARE_ACCELERATION),
         isOutdated: () => invoke<boolean>(IpcEvents.UPDATER_IS_OUTDATED),
         openUpdater: () => invoke<void>(IpcEvents.UPDATER_OPEN),
-        // used by vencord
+        getPlatformSpoofInfo: () =>
+            sendSync<{
+                spoofed: boolean;
+                originalPlatform: string;
+                spoofedPlatform: string | null;
+            }>(IpcEvents.GET_PLATFORM_SPOOF_INFO),
         getRendererCss: () => invoke<string>(IpcEvents.GET_VESKTOP_RENDERER_CSS),
         onRendererCssUpdate: (cb: (newCss: string) => void) => {
             if (!IS_DEV) return;
@@ -51,7 +65,8 @@ export const VesktopNative = {
     fileManager: {
         isUsingCustomVencordDir: () => sendSync<boolean>(IpcEvents.IS_USING_CUSTOM_VENCORD_DIR),
         showCustomVencordDir: () => invoke<void>(IpcEvents.SHOW_CUSTOM_VENCORD_DIR),
-        selectVencordDir: (value?: null) => invoke<"cancelled" | "invalid" | "ok">(IpcEvents.SELECT_VENCORD_DIR, value),
+        selectEquicordDir: (value?: null) =>
+            invoke<"cancelled" | "invalid" | "ok">(IpcEvents.SELECT_VENCORD_DIR, value),
         chooseUserAsset: (asset: string, value?: null) =>
             invoke<"cancelled" | "invalid" | "ok" | "failed">(IpcEvents.CHOOSE_USER_ASSET, asset, value)
     },
@@ -69,6 +84,15 @@ export const VesktopNative = {
         },
         replaceMisspelling: (word: string) => invoke<void>(IpcEvents.SPELLCHECK_REPLACE_MISSPELLING, word),
         addToDictionary: (word: string) => invoke<void>(IpcEvents.SPELLCHECK_ADD_TO_DICTIONARY, word)
+    },
+    arrpc: {
+        onActivity(cb: ArRPCActivityCallback) {
+            arrpcActivityCallbacks.add(cb);
+        },
+        offActivity(cb: ArRPCActivityCallback) {
+            arrpcActivityCallbacks.delete(cb);
+        },
+        openSettings: () => invoke<void>(IpcEvents.ARRPC_OPEN_SETTINGS)
     },
     win: {
         focus: () => invoke<void>(IpcEvents.FOCUS),
@@ -97,6 +121,21 @@ export const VesktopNative = {
     clipboard: {
         copyImage: (imageBuffer: Uint8Array, imageSrc: string) =>
             invoke<void>(IpcEvents.CLIPBOARD_COPY_IMAGE, imageBuffer, imageSrc)
+    },
+    tray: {
+        setVoiceState: (state: string) => invoke<void>(IpcEvents.VOICE_STATE_CHANGED, state),
+        setVoiceCallState: (inCall: boolean) => invoke<void>(IpcEvents.VOICE_CALL_STATE_CHANGED, inCall)
+    },
+    voice: {
+        onToggleSelfMute: (listener: (...args: any[]) => void) => {
+            ipcRenderer.on(IpcEvents.TOGGLE_SELF_MUTE, listener);
+        },
+        onToggleSelfDeaf: (listener: (...args: any[]) => void) => {
+            ipcRenderer.on(IpcEvents.TOGGLE_SELF_DEAF, listener);
+        },
+        onToggleVAD: (listener: (...args: any[]) => void) => {
+            ipcRenderer.on(IpcEvents.TOGGLE_VAD, listener);
+        }
     },
     debug: {
         launchGpu: () => invoke<void>(IpcEvents.DEBUG_LAUNCH_GPU),

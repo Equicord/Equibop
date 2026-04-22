@@ -1,6 +1,6 @@
 /*
  * Vesktop, a desktop app aiming to give you a snappier Discord Experience
- * Copyright (c) 2023 Vendicated and Vencord contributors
+ * Copyright (c) 2025 Vendicated and Vesktop contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
@@ -10,15 +10,15 @@ import { dirname, join } from "path";
 
 import { CommandLine } from "./cli";
 
-const vesktopDir = dirname(process.execPath);
+const equibopDir = dirname(process.execPath);
 
 export const PORTABLE =
     process.platform === "win32" &&
     !process.execPath.toLowerCase().endsWith("electron.exe") &&
-    !existsSync(join(vesktopDir, "Uninstall Vesktop.exe"));
+    !existsSync(join(equibopDir, "Uninstall Equibop.exe"));
 
 export const DATA_DIR =
-    process.env.VENCORD_USER_DATA_DIR || (PORTABLE ? join(vesktopDir, "Data") : join(app.getPath("userData")));
+    process.env.EQUICORD_USER_DATA_DIR || (PORTABLE ? join(equibopDir, "Data") : join(app.getPath("userData")));
 
 mkdirSync(DATA_DIR, { recursive: true });
 
@@ -31,7 +31,7 @@ export const VENCORD_QUICKCSS_FILE = join(VENCORD_SETTINGS_DIR, "quickCss.css");
 export const VENCORD_SETTINGS_FILE = join(VENCORD_SETTINGS_DIR, "settings.json");
 export const VENCORD_THEMES_DIR = join(DATA_DIR, "themes");
 
-export const USER_AGENT = `Vesktop/${app.getVersion()} (https://github.com/Vencord/Vesktop)`;
+export const USER_AGENT = `Equibop/${app.getVersion()} (https://github.com/Equicord/Equibop)`;
 
 // dimensions shamelessly stolen from Discord Desktop :3
 export const MIN_WIDTH = 940;
@@ -59,3 +59,6 @@ export const enum MessageBoxChoice {
 }
 
 export const IS_FLATPAK = process.env.FLATPAK_ID !== undefined;
+export const isWayland =
+    process.platform === "linux" && (process.env.XDG_SESSION_TYPE === "wayland" || !!process.env.WAYLAND_DISPLAY);
+export const isLinux = process.platform === "linux";

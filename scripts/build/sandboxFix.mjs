@@ -21,6 +21,10 @@ export async function applyAppImageSandboxFix() {
     if (isApplied) return;
     isApplied = true;
 
+    if (!AppImageTarget.default?.prototype?.build) {
+        return;
+    }
+
     const oldBuildMethod = AppImageTarget.default.prototype.build;
     AppImageTarget.default.prototype.build = async function (...args) {
         console.log("Running AppImage builder hook", args);
@@ -48,7 +52,7 @@ SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
 IS_STEAMOS=0
 
 if [[ "$SteamOS" == "1" && "$SteamGamepadUI" == "1" ]]; then
-    echo "Running Vesktop on SteamOS, disabling sandbox"
+    echo "Running Equibop on SteamOS, disabling sandbox"
     IS_STEAMOS=1
 fi
 

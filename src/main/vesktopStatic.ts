@@ -22,7 +22,7 @@ export async function handleVesktopStaticProtocol(path: string, req: Request) {
 }
 
 export function loadView(browserWindow: BrowserWindow, view: string, params?: URLSearchParams) {
-    const url = new URL(`vesktop://static/views/${view}`);
+    const url = new URL(`equibop://static/views/${view}`);
     if (params) {
         url.search = params.toString();
     }

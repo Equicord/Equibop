@@ -15,24 +15,19 @@ jobs:
 
         steps:
             - uses: actions/checkout@v4
-            - uses: pnpm/action-setup@v4 # Install pnpm using packageManager key in package.json
-
-            - name: Use Node.js 20
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
+            - uses: oven-sh/setup-bun@v2
 
             - name: Install dependencies
-              run: pnpm i
+              run: bun install
 
             - name: Update metainfo
-              run: pnpm generateMeta
+              run: bun run generateMeta
 
             - name: Commit and merge in changes
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-                  gh release upload "${{ github.event.release.tag_name }}" dist/dev.vencord.Vesktop.metainfo.xml
+                  gh release upload "${{ github.event.release.tag_name }}" dist/org.equicord.equibop.metainfo.xml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

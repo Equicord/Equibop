@@ -1,0 +1,490 @@
+<!doctype html>
+<meta charset="utf-8" />
+
+<head>
+    <title>Rich Presence Settings</title>
+
+    <link rel="stylesheet" href="./common.css" type="text/css" />
+
+    <style>
+        body {
+            height: 100vh;
+            padding: 1.5em 2em;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .description {
+            margin: 0.5em 0 1.5em;
+            font-size: 0.9rem;
+            color: var(--fg-secondary);
+            line-height: 1.4;
+        }
+
+        .status-card {
+            background: var(--bg-secondary, rgba(0, 0, 0, 0.1));
+            border-radius: 8px;
+            padding: 1em;
+            margin-bottom: 1.5em;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-text {
+            font-weight: 500;
+        }
+
+        .status-meta {
+            color: var(--fg-secondary);
+        }
+
+        .activities-toggle {
+            cursor: pointer;
+            color: var(--link);
+            user-select: none;
+            margin-left: 4px;
+        }
+
+        .activities-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .activities {
+            margin-top: 0.75em;
+            padding-top: 0.75em;
+            border-top: 1px solid var(--fg-semi-trans);
+            font-size: 0.85rem;
+        }
+
+        .activity-item {
+            padding: 0.4em 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .activity-name {
+            font-weight: 500;
+        }
+
+        .activity-pid {
+            color: var(--fg-secondary);
+            font-size: 0.8rem;
+        }
+
+        .settings-section {
+            margin-bottom: 1.5em;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--fg-secondary);
+            margin: 1.5em 0 0.75em;
+        }
+
+        .section-title:first-child {
+            margin-top: 0;
+        }
+
+        .setting {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75em 0;
+        }
+
+        .setting + .setting {
+            border-top: 1px solid var(--fg-semi-trans);
+        }
+
+        .setting-info {
+            flex: 1;
+            padding-right: 1em;
+        }
+
+        .setting-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 0.2em;
+        }
+
+        .setting-description {
+            font-size: 0.8rem;
+            color: var(--fg-secondary);
+            line-height: 1.3;
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #72767d;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle.on {
+            background: #3ba55d;
+        }
+
+        .toggle::after {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: left 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle.on::after {
+            left: 23px;
+        }
+
+        .input-group {
+            margin-top: 0.75em;
+        }
+
+        .input-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.5em;
+            color: var(--fg-secondary);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            padding: 0.6em 0.8em;
+            background: var(--bg);
+            color: var(--fg);
+            border: 1px solid var(--fg-semi-trans);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"] {
+            flex: 2;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--link);
+        }
+
+        input::placeholder {
+            color: var(--fg-secondary);
+            opacity: 0.7;
+        }
+
+        #buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-bottom: 1.5em;
+            padding-top: 1.5em;
+            border-top: 1px solid var(--fg-semi-trans);
+        }
+
+        button {
+            padding: 0.6em 1.2em;
+            color: white;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition:
+                filter 0.15s,
+                transform 0.1s;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #restart {
+            background: #ed4245;
+        }
+
+        #close {
+            background: #5865f2;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Rich Presence</h1>
+    <p class="description">Show what games and apps you're using as your Discord status.</p>
+
+    <div class="status-card">
+        <div class="status">
+            <div class="status-dot" id="status-dot"></div>
+            <span class="status-text" id="status-text">Loading...</span>
+            <span class="status-meta">
+                <span id="activities-info"></span>
+                <span id="version-info"></span>
+            </span>
+        </div>
+        <div class="activities hidden" id="activities-list"></div>
+    </div>
+
+    <div class="settings-section">
+        <div class="setting">
+            <div class="setting-info">
+                <div class="setting-title">Enable Rich Presence</div>
+                <div class="setting-description">Display your current activity on Discord</div>
+            </div>
+            <div class="toggle" id="toggle-enabled"></div>
+        </div>
+
+        <div id="enabled-settings">
+            <div class="setting">
+                <div class="setting-info">
+                    <div class="setting-title">Use Built-in Server</div>
+                    <div class="setting-description">Use Equibop's integrated arRPC server</div>
+                </div>
+                <div class="toggle" id="toggle-builtin"></div>
+            </div>
+
+            <div class="setting" id="process-scanning-setting">
+                <div class="setting-info">
+                    <div class="setting-title">Game Detection</div>
+                    <div class="setting-description">Automatically detect running games and apps</div>
+                </div>
+                <div class="toggle" id="toggle-scanning"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-section" id="advanced-settings">
+        <div class="section-title">Advanced</div>
+
+        <div class="setting">
+            <div class="setting-info">
+                <div class="setting-title">Auto Reconnect</div>
+                <div class="setting-description">Automatically reconnect if the connection is lost</div>
+            </div>
+            <div class="toggle" id="toggle-reconnect"></div>
+        </div>
+
+        <div class="setting">
+            <div class="setting-info">
+                <div class="setting-title">Debug Mode</div>
+                <div class="setting-description">Log detailed information for troubleshooting</div>
+            </div>
+            <div class="toggle" id="toggle-debug"></div>
+        </div>
+
+        <div class="section-title">External Server</div>
+        <p class="description" style="margin: 0 0 0.75em">
+            Connect to an external arRPC server instead of the built-in one.
+        </p>
+        <div class="input-row">
+            <input type="text" id="custom-host" placeholder="Host (e.g. 127.0.0.1)" />
+            <input type="number" id="custom-port" placeholder="Port (default: 1337)" />
+        </div>
+    </div>
+
+    <div id="buttons">
+        <button id="restart">Restart arRPC</button>
+        <button id="close">Done</button>
+    </div>
+</body>
+
+<script>
+    const data = new URLSearchParams(location.search);
+    let showActivities = false;
+
+    const settings = {
+        arRPCDisabled: data.get("arRPCDisabled") === "true",
+        arRPC: data.get("arRPC") === "true",
+        arRPCProcessScanning: data.get("arRPCProcessScanning") !== "false",
+        arRPCDebug: data.get("arRPCDebug") === "true",
+        arRPCWebSocketAutoReconnect: data.get("arRPCWebSocketAutoReconnect") !== "false",
+        arRPCWebSocketCustomHost: data.get("arRPCWebSocketCustomHost") || "",
+        arRPCWebSocketCustomPort: data.get("arRPCWebSocketCustomPort") || ""
+    };
+
+    let status = JSON.parse(data.get("status") || "{}");
+
+    const toggleEnabled = document.getElementById("toggle-enabled");
+    const toggleBuiltin = document.getElementById("toggle-builtin");
+    const toggleScanning = document.getElementById("toggle-scanning");
+    const toggleReconnect = document.getElementById("toggle-reconnect");
+    const toggleDebug = document.getElementById("toggle-debug");
+    const customHost = document.getElementById("custom-host");
+    const customPort = document.getElementById("custom-port");
+    const enabledSettings = document.getElementById("enabled-settings");
+    const advancedSettings = document.getElementById("advanced-settings");
+    const processScanningRow = document.getElementById("process-scanning-setting");
+
+    function updateToggle(el, value) {
+        el.classList.toggle("on", value);
+    }
+
+    updateToggle(toggleEnabled, !settings.arRPCDisabled);
+    updateToggle(toggleBuiltin, settings.arRPC);
+    updateToggle(toggleScanning, settings.arRPCProcessScanning);
+    updateToggle(toggleReconnect, settings.arRPCWebSocketAutoReconnect);
+    updateToggle(toggleDebug, settings.arRPCDebug);
+    customHost.value = settings.arRPCWebSocketCustomHost;
+    customPort.value = settings.arRPCWebSocketCustomPort;
+
+    function updateVisibility() {
+        enabledSettings.classList.toggle("hidden", settings.arRPCDisabled);
+        advancedSettings.classList.toggle("hidden", settings.arRPCDisabled);
+        processScanningRow.classList.toggle("hidden", !settings.arRPC);
+    }
+    updateVisibility();
+
+    toggleEnabled.onclick = () => {
+        settings.arRPCDisabled = !settings.arRPCDisabled;
+        updateToggle(toggleEnabled, !settings.arRPCDisabled);
+        updateVisibility();
+        console.info("set:arRPCDisabled=" + settings.arRPCDisabled);
+    };
+
+    toggleBuiltin.onclick = () => {
+        settings.arRPC = !settings.arRPC;
+        updateToggle(toggleBuiltin, settings.arRPC);
+        updateVisibility();
+        console.info("set:arRPC=" + settings.arRPC);
+    };
+
+    toggleScanning.onclick = () => {
+        settings.arRPCProcessScanning = !settings.arRPCProcessScanning;
+        updateToggle(toggleScanning, settings.arRPCProcessScanning);
+        console.info("set:arRPCProcessScanning=" + settings.arRPCProcessScanning);
+    };
+
+    toggleReconnect.onclick = () => {
+        settings.arRPCWebSocketAutoReconnect = !settings.arRPCWebSocketAutoReconnect;
+        updateToggle(toggleReconnect, settings.arRPCWebSocketAutoReconnect);
+        console.info("set:arRPCWebSocketAutoReconnect=" + settings.arRPCWebSocketAutoReconnect);
+    };
+
+    toggleDebug.onclick = () => {
+        settings.arRPCDebug = !settings.arRPCDebug;
+        updateToggle(toggleDebug, settings.arRPCDebug);
+        console.info("set:arRPCDebug=" + settings.arRPCDebug);
+    };
+
+    customHost.onchange = () => {
+        console.info("set:arRPCWebSocketCustomHost=" + customHost.value);
+    };
+
+    customPort.onchange = () => {
+        console.info("set:arRPCWebSocketCustomPort=" + customPort.value);
+    };
+
+    document.getElementById("restart").onclick = () => console.info("restart");
+    document.getElementById("close").onclick = () => console.info("close");
+
+    function renderStatus() {
+        const dot = document.getElementById("status-dot");
+        const text = document.getElementById("status-text");
+        const activitiesInfo = document.getElementById("activities-info");
+        const versionInfo = document.getElementById("version-info");
+        const activitiesList = document.getElementById("activities-list");
+
+        let color, statusText;
+
+        if (status.isReady) {
+            color = "#3ba55d";
+            statusText = "Connected";
+        } else if (status.isStale) {
+            color = "#faa81a";
+            statusText = "Idle";
+        } else if (status.running) {
+            color = "#faa81a";
+            statusText = "Starting...";
+        } else {
+            color = "#ed4245";
+            statusText = "Stopped";
+        }
+
+        dot.style.backgroundColor = color;
+        text.textContent = statusText;
+
+        const activityCount = status.activities?.length || 0;
+        if (activityCount > 0) {
+            activitiesInfo.innerHTML = `\u2022 ${activityCount} ${activityCount === 1 ? "activity" : "activities"} <span class="activities-toggle" id="activities-toggle">(${showActivities ? "hide" : "show"})</span>`;
+            document.getElementById("activities-toggle").onclick = () => {
+                showActivities = !showActivities;
+                renderStatus();
+            };
+
+            if (showActivities) {
+                activitiesList.classList.remove("hidden");
+                activitiesList.innerHTML = status.activities
+                    .map(
+                        a =>
+                            `<div class="activity-item"><span class="activity-name">${a.name}</span><span class="activity-pid">PID ${a.pid}</span></div>`
+                    )
+                    .join("");
+            } else {
+                activitiesList.classList.add("hidden");
+            }
+        } else {
+            activitiesInfo.textContent = "";
+            activitiesList.classList.add("hidden");
+        }
+
+        versionInfo.textContent = status.appVersion ? `\u2022 v${status.appVersion}` : "";
+    }
+
+    renderStatus();
+
+    window.updateStatus = function (newStatus) {
+        status = newStatus;
+        renderStatus();
+    };
+</script>

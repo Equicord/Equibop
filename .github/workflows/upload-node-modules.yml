@@ -1,0 +1,60 @@
+name: Upload node_modules to release
+
+on:
+    release:
+        types:
+            - published
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    upload:
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                include:
+                    - arch: x64
+                      platform: linux/amd64
+                    - arch: arm64
+                      platform: linux/arm64
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up QEMU
+              if: matrix.arch == 'arm64'
+              uses: docker/setup-qemu-action@v3
+              with:
+                  platforms: linux/arm64
+
+            - name: Install system dependencies
+              if: matrix.arch == 'x64'
+              run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
+
+            - name: Install dependencies (native x64)
+              if: matrix.arch == 'x64'
+              uses: oven-sh/setup-bun@v2
+
+            - name: Install dependencies (native x64)
+              if: matrix.arch == 'x64'
+              run: bun install
+
+            - name: Install dependencies (Docker ARM64)
+              if: matrix.arch == 'arm64'
+              run: |
+                  docker run --rm --platform ${{ matrix.platform }} \
+                    -v "$(pwd):/work" -w /work \
+                    oven/bun:1 \
+                    bash -c "apt-get update && apt-get install -y libglib2.0-dev && bun install"
+
+            - name: Create node_modules tarball
+              run: tar -czf node_modules-${{ matrix.arch }}.tar.gz node_modules/
+
+            - name: Upload to release
+              run: |
+                  gh release upload "${{ github.event.release.tag_name }}" node_modules-${{ matrix.arch }}.tar.gz
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
