@@ -10,7 +10,7 @@ export interface MenuItem {
     type?: "separator";
 }
 
-export function initStatusNotifierItem(): boolean;
+export function initStatusNotifierItem(appName: string): boolean;
 export function setStatusNotifierIcon(pixmapData: Buffer): boolean;
 export function setStatusNotifierTitle(title: string): boolean;
 export function setStatusNotifierMenu(items: MenuItem[]): boolean;

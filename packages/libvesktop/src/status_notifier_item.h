@@ -40,6 +40,7 @@ private:
     guint watcher_id = 0;
     bool registered_with_watcher = false;
     std::string service_name;
+    std::string app_name;
     std::string object_path;
     std::string menu_object_path = "/MenuBar";
     std::string current_status = "Active";
@@ -111,7 +112,7 @@ private:
     void subscribe_to_watcher();
 
 public:
-    StatusNotifierItem();
+    StatusNotifierItem(const std::string &app_name);
     ~StatusNotifierItem();
 
     bool initialize();
