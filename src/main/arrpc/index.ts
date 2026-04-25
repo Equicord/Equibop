@@ -175,28 +175,40 @@ const PROCESS_KILL_TIMEOUT_MS = 5000;
 const STATE_CHECK_INTERVAL_MS = 500;
 const STATE_FILE_STALE_MS = 60000;
 const WS_RECONNECT_INTERVAL_MS = 5000;
+const AUTO_RESTART_DELAY_MS = 5000;
+const AUTO_RESTART_MAX_ATTEMPTS = 3;
+const AUTO_RESTART_WINDOW_MS = 60000;
+
+let autoRestartHistory: number[] = [];
+let autoRestartTimer: NodeJS.Timeout | null = null;
 
 let ws: WebSocket | null = null;
 let wsReconnectTimer: NodeJS.Timeout | null = null;
-let wsIntentionalClose = false;
 
 function findStateFile(): string | null {
     const tempDir = tmpdir();
+    const candidates: { path: string; timestamp: number }[] = [];
 
     for (let i = 0; i <= STATE_FILE_MAX_INDEX; i++) {
         const path = join(tempDir, `${STATE_FILE_PREFIX}-${i}`);
-        if (existsSync(path)) {
-            try {
-                const content = JSON.parse(readFileSync(path, "utf-8")) as StateFileContent;
-                const age = Date.now() - content.timestamp;
-                if (age < STATE_FILE_STALE_MS) {
-                    return path;
-                }
-            } catch {
-                continue;
+        if (!existsSync(path)) continue;
+        try {
+            const content = JSON.parse(readFileSync(path, "utf-8")) as StateFileContent;
+            const age = Date.now() - content.timestamp;
+            if (age < STATE_FILE_STALE_MS) {
+                candidates.push({ path, timestamp: content.timestamp });
             }
+        } catch {
+            continue;
         }
     }
+
+    if (startTime != null && candidates.length > 0) {
+        const ours = candidates.filter(c => c.timestamp >= startTime! - 1000).sort((a, b) => a.timestamp - b.timestamp);
+        if (ours.length > 0) return ours[0].path;
+    }
+
+    if (candidates.length > 0) return candidates[0].path;
 
     if (arrpcProcess?.pid) {
         const pidPath = join(tempDir, `${STATE_FILE_PREFIX}-${arrpcProcess.pid}`);
@@ -240,6 +252,8 @@ function handleStateUpdate(state: StateFileContent) {
     if (!isReady && state.timestamp) {
         isReady = true;
         readyTime = Date.now();
+        lastError = null;
+        autoRestartHistory = [];
         clearInitTimeout();
         debugLog(`arRPC ready (from state file), version: ${state.appVersion}`);
         updateWebSocketConnection();
@@ -345,6 +359,13 @@ function getWsConnectionInfo(): { host: string; port: number } | null {
     return null;
 }
 
+function disposeWebSocket(target: WebSocket) {
+    target.removeAllListeners();
+    if (target.readyState !== WebSocket.CLOSED && target.readyState !== WebSocket.CLOSING) {
+        target.close();
+    }
+}
+
 function connectWebSocket() {
     const connectionInfo = getWsConnectionInfo();
     if (!connectionInfo) {
@@ -358,13 +379,20 @@ function connectWebSocket() {
     debugLog(`Connecting WebSocket to ${wsUrl}`);
 
     if (ws) {
-        wsIntentionalClose = true;
-        ws.close();
+        const prev = ws;
+        ws = null;
+        disposeWebSocket(prev);
     }
 
-    ws = new WebSocket(wsUrl);
+    if (wsReconnectTimer) {
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+    }
 
-    ws.on("message", (data: Buffer) => {
+    const localWs = new WebSocket(wsUrl);
+    ws = localWs;
+
+    localWs.on("message", (data: Buffer) => {
         try {
             const message = JSON.parse(data.toString());
             debugLog("Received activity:", message);
@@ -375,15 +403,13 @@ function connectWebSocket() {
         }
     });
 
-    ws.on("error", (err: Error) => {
+    localWs.on("error", (err: Error) => {
         debugLog("WebSocket error:", err.message);
     });
 
-    ws.on("close", () => {
-        if (wsIntentionalClose) {
-            wsIntentionalClose = false;
-            return;
-        }
+    localWs.on("close", () => {
+        if (localWs !== ws) return;
+        ws = null;
 
         const autoReconnect = Settings.store.arRPCWebSocketAutoReconnect ?? true;
         debugLog(`WebSocket closed${autoReconnect ? ", will reconnect" : ""}`);
@@ -400,7 +426,8 @@ function connectWebSocket() {
         }
     });
 
-    ws.on("open", () => {
+    localWs.on("open", () => {
+        if (localWs !== ws) return;
         debugLog("WebSocket connected");
         if (wsReconnectTimer) {
             clearTimeout(wsReconnectTimer);
@@ -416,9 +443,9 @@ function stopWebSocket() {
     }
 
     if (ws) {
-        wsIntentionalClose = true;
-        ws.close();
+        const prev = ws;
         ws = null;
+        disposeWebSocket(prev);
     }
 
     mainWin?.webContents.send(IpcEvents.ARRPC_ACTIVITY, { activity: null });
@@ -505,7 +532,52 @@ function clearInitTimeout() {
     }
 }
 
-export async function destroyArRPC(): Promise<void> {
+function clearAutoRestart() {
+    if (autoRestartTimer) {
+        clearTimeout(autoRestartTimer);
+        autoRestartTimer = null;
+    }
+}
+
+function scheduleAutoRestart() {
+    if (autoRestartTimer) return;
+
+    const now = Date.now();
+    autoRestartHistory = autoRestartHistory.filter(t => now - t < AUTO_RESTART_WINDOW_MS);
+
+    if (autoRestartHistory.length >= AUTO_RESTART_MAX_ATTEMPTS) {
+        console.error(
+            `[arRPC] Process crashed ${autoRestartHistory.length} times in ${AUTO_RESTART_WINDOW_MS / 1000}s, giving up auto-restart`
+        );
+        lastError = "Auto-restart limit reached after repeated crashes";
+        return;
+    }
+
+    autoRestartHistory.push(now);
+    debugLog(
+        `Scheduling auto-restart in ${AUTO_RESTART_DELAY_MS}ms (attempt ${autoRestartHistory.length}/${AUTO_RESTART_MAX_ATTEMPTS})`
+    );
+
+    autoRestartTimer = setTimeout(() => {
+        autoRestartTimer = null;
+        if (Settings.store.arRPCDisabled || !Settings.store.arRPC) return;
+        if (arrpcProcess) return;
+        debugLog("Auto-restarting arRPC after crash");
+        initArRPC();
+    }, AUTO_RESTART_DELAY_MS);
+}
+
+let lifecyclePromise: Promise<unknown> = Promise.resolve();
+
+function serializeLifecycle<T>(op: () => Promise<T>): Promise<T> {
+    const next = lifecyclePromise.then(op, op);
+    lifecyclePromise = next.catch(() => {});
+    return next;
+}
+
+async function destroyArRPCInner(): Promise<void> {
+    clearAutoRestart();
+
     if (!arrpcProcess || isDestroying) return;
 
     isDestroying = true;
@@ -555,26 +627,36 @@ export async function destroyArRPC(): Promise<void> {
     debugLog("arRPC process destroyed");
 }
 
-export async function restartArRPC() {
-    debugLog("Restarting arRPC");
-    await destroyArRPC();
-    await initArRPC();
-    if (arrpcProcess) {
-        restartCount++;
-    }
+export function destroyArRPC(): Promise<void> {
+    return serializeLifecycle(destroyArRPCInner);
 }
 
-export async function initArRPC() {
+export function restartArRPC(): Promise<void> {
+    return serializeLifecycle(async () => {
+        debugLog("Restarting arRPC");
+        await destroyArRPCInner();
+        await initArRPCInner();
+        if (arrpcProcess) {
+            restartCount++;
+        }
+    });
+}
+
+export function initArRPC(): Promise<void> {
+    return serializeLifecycle(initArRPCInner);
+}
+
+async function initArRPCInner() {
     if (Settings.store.arRPCDisabled) {
         debugLog("Rich Presence is disabled");
-        await destroyArRPC();
+        await destroyArRPCInner();
         restartCount = 0;
         return;
     }
 
     if (!Settings.store.arRPC) {
         debugLog("Built-in server is disabled, using external only");
-        await destroyArRPC();
+        await destroyArRPCInner();
         restartCount = 0;
         updateWebSocketConnection();
         return;
@@ -612,10 +694,6 @@ export async function initArRPC() {
             env.ARRPC_NO_PROCESS_SCANNING = "1";
         }
 
-        if (Settings.store.arRPCBridge === false) {
-            env.ARRPC_NO_BRIDGE = "1";
-        }
-
         arrpcProcess = spawn(resolvedBinaryPath, [], {
             stdio: ["ignore", "pipe", "pipe"],
             env,
@@ -642,18 +720,27 @@ export async function initArRPC() {
         });
 
         arrpcProcess.stderr?.on("data", data => {
-            const output = data.toString().trim();
-            if (output) {
+            const lines = data
+                .toString()
+                .split("\n")
+                .map((l: string) => l.trim())
+                .filter(Boolean);
+
+            for (const line of lines) {
                 try {
-                    const message = JSON.parse(output);
+                    const message = JSON.parse(line);
                     if (message.type === "STREAMERMODE") {
                         debugLog(`Streamer mode changed: ${message.data}`);
                         mainWin?.webContents.send(IpcEvents.ARRPC_ACTIVITY, JSON.parse(message.data));
-                        return;
+                        continue;
                     }
                 } catch {}
-                console.error("[arRPC ! stderr]", output);
-                lastError = output;
+
+                console.error("[arRPC ! stderr]", line);
+                const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, "");
+                if (/\bERROR\b/.test(cleanLine)) {
+                    lastError = cleanLine;
+                }
             }
         });
 
@@ -689,6 +776,7 @@ export async function initArRPC() {
 
             debugLog(`arRPC process exited with code ${code}, signal ${signal}, wasReady: ${wasReady}`);
 
+            const wasIntentional = isDestroying;
             arrpcProcess = null;
             serverPort = null;
             serverHost = null;
@@ -699,6 +787,10 @@ export async function initArRPC() {
 
             clearInitTimeout();
             stopStateFileWatching();
+
+            if (!wasIntentional && !Settings.store.arRPCDisabled && Settings.store.arRPC) {
+                scheduleAutoRestart();
+            }
         });
     } catch (e) {
         console.error("[arRPC] Failed to start arRPC server:", e);
@@ -732,10 +824,8 @@ export function setupArRPC() {
     Settings.addChangeListener("arRPC", mainSettingsListener);
     Settings.addChangeListener("arRPCDebug", configSettingsListener);
     Settings.addChangeListener("arRPCProcessScanning", configSettingsListener);
-    Settings.addChangeListener("arRPCBridge", configSettingsListener);
     Settings.addChangeListener("arRPCWebSocketCustomHost", wsSettingsListener);
     Settings.addChangeListener("arRPCWebSocketCustomPort", wsSettingsListener);
-    Settings.addChangeListener("arRPCWebSocketAutoReconnect", wsSettingsListener);
     debugLog("arRPC settings listeners registered");
 }
 
@@ -749,14 +839,12 @@ export async function cleanupArRPC() {
     if (configSettingsListener) {
         Settings.removeChangeListener("arRPCDebug", configSettingsListener);
         Settings.removeChangeListener("arRPCProcessScanning", configSettingsListener);
-        Settings.removeChangeListener("arRPCBridge", configSettingsListener);
         configSettingsListener = null;
     }
 
     if (wsSettingsListener) {
         Settings.removeChangeListener("arRPCWebSocketCustomHost", wsSettingsListener);
         Settings.removeChangeListener("arRPCWebSocketCustomPort", wsSettingsListener);
-        Settings.removeChangeListener("arRPCWebSocketAutoReconnect", wsSettingsListener);
         wsSettingsListener = null;
     }
 
