@@ -38,6 +38,7 @@ interface Activity {
     name?: string;
     details?: string;
     state?: string;
+    type?: number;
     assets?: ActivityAssets;
     timestamps?: {
         start?: number;
@@ -108,6 +109,8 @@ async function handleActivityEvent(data: ActivityEvent) {
     }
 
     if (activity) {
+        if (activity.type == null) activity.type = 0;
+
         const { assets } = activity;
         if (assets?.large_image) assets.large_image = await lookupAsset(activity.application_id, assets.large_image);
         if (assets?.small_image) assets.small_image = await lookupAsset(activity.application_id, assets.small_image);
