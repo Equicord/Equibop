@@ -9,6 +9,19 @@ import { app, protocol } from "electron";
 import { handleVesktopAssetsProtocol } from "./userAssets";
 import { handleVesktopStaticProtocol } from "./vesktopStatic";
 
+protocol.registerSchemesAsPrivileged([
+    {
+        scheme: "equibop",
+        privileges: {
+            standard: true,
+            secure: true,
+            supportFetchAPI: true,
+            corsEnabled: true,
+            stream: true
+        }
+    }
+]);
+
 app.whenReady().then(() => {
     protocol.handle("equibop", async req => {
         const url = new URL(req.url);
