@@ -20,6 +20,7 @@ declare module "@vencord/venmic" {
         ignore_devices?: boolean;
         only_speakers?: boolean;
         only_default_speakers?: boolean;
+        mute?: boolean;
         workaround?: Node[];
     }
 
@@ -28,5 +29,6 @@ declare module "@vencord/venmic" {
         list(props?: string[]): Node[];
         link(data: LinkData): boolean;
         unlink(): boolean;
+        unmute(): void;
     }
 }

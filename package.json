@@ -38,7 +38,7 @@
         "ws": "^8.21.1"
     },
     "optionalDependencies": {
-        "@vencord/venmic": "^6.1.0"
+        "@vencord/venmic": "^7.1.0"
     },
     "devDependencies": {
         "@equicord/types": "^1.14.15",

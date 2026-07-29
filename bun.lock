@@ -41,7 +41,7 @@
         "xml-formatter": "^3.7.0",
       },
       "optionalDependencies": {
-        "@vencord/venmic": "^6.1.0",
+        "@vencord/venmic": "^7.1.0",
       },
     },
   },
@@ -256,7 +256,7 @@
 
     "@vencord/discord-types": ["@vencord/discord-types@1.0.1", "", { "dependencies": { "moment": "^2.22.2", "type-fest": "^4.41.0" }, "peerDependencies": { "@types/react": "^19.0.10" } }, "sha512-uSQMDUTo9hMFgOMykNtTMTxScSKVVUHHFCevktO3bMyaLh1s3iDMfIvUvqU1fBkmFwvMbmEYsUrztsVKKHvang=="],
 
-    "@vencord/venmic": ["@vencord/venmic@6.1.0", "", { "dependencies": { "cmake-js": "^7.3.0", "node-addon-api": "^8.0.0", "pkg-prebuilds": "^0.2.1" }, "os": "linux" }, "sha512-YiCtzml/W8tYbGhu3jm5jfbbEnl2slKKARNK0jO+8qV979k9eFnfIRTxvhMN/SWq1h8ZNJdXVwvXpffQwq0RuA=="],
+    "@vencord/venmic": ["@vencord/venmic@7.1.0", "", { "dependencies": { "cmake-js": "^7.3.0", "node-addon-api": "^8.0.0", "pkg-prebuilds": "^0.2.1" }, "os": "linux" }, "sha512-HQpZoUKGz8j7m1+1BCgE+7B6T/+/IArVO8km7SjsWxe/5+2YblAs0Fwgy9C9XqCCir/u0+F1FMqrQQUX2PATYw=="],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.11", "", {}, "sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw=="],
 
