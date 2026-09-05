@@ -22,6 +22,8 @@ jobs:
 
             - name: Update metainfo
               run: bun run generateMeta
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Commit and merge in changes
               run: |

@@ -55,7 +55,7 @@ export async function createSplashWindow(startMinimized = false) {
     const systemFg = isDark ? "white" : "black";
     const systemFgSemiTrans = isDark ? "rgb(255 255 255 / 0.2)" : "rgb(0 0 0 / 0.2)";
 
-    if (splashTheming !== false) {
+    if (splashTheming) {
         const fg = splashColor || systemFg;
         const bg = splashBackground || systemBg;
         const fgSemiTrans = splashColor

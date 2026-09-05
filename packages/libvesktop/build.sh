@@ -3,8 +3,10 @@ set -e
 
 docker build -t libvesktop-builder -f Dockerfile .
 
-docker run --rm -v "$PWD":/src -w /src libvesktop-builder bash -c "
+docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/src -w /src libvesktop-builder bash -c "
   set -e
+
+  npm install --no-audit --no-fund --no-package-lock
 
   echo '=== Building x64 ==='
   npx node-gyp rebuild --arch=x64

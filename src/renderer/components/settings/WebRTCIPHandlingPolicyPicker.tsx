@@ -34,7 +34,7 @@ export const WebRTCIPHandlingPolicyPicker: SettingsComponent = ({ settings }) =>
                     ]}
                     closeOnSelect={true}
                     select={v => (settings.webRTCIPHandlingPolicy = v)}
-                    isSelected={v => v === (settings.webRTCIPHandlingPolicy ?? "default")}
+                    isSelected={v => v === settings.webRTCIPHandlingPolicy}
                     serialize={s => s}
                 />
             </div>

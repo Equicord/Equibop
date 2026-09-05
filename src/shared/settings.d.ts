@@ -7,43 +7,45 @@
 import type { Rectangle } from "electron";
 
 export interface Settings {
-    discordBranch?: "stable" | "canary" | "ptb";
-    transparencyOption?: "none" | "mica" | "tabbed" | "acrylic";
-    webRTCIPHandlingPolicy?:
+    discordBranch: "stable" | "canary" | "ptb";
+    transparencyOption: "none" | "mica" | "tabbed" | "acrylic";
+    webRTCIPHandlingPolicy:
         | "default"
         | "default_public_interface_only"
         | "default_public_and_private_interfaces"
         | "disable_non_proxied_udp";
-    tray?: boolean;
-    minimizeToTray?: boolean;
-    autoStartMinimized?: boolean;
-    middleClickAutoscroll?: boolean;
-    openLinksWithElectron?: boolean;
-    staticTitle?: boolean;
-    enableMenu?: boolean;
-    disableSmoothScroll?: boolean;
-    hardwareAcceleration?: boolean;
-    hardwareVideoAcceleration?: boolean;
-    arRPC?: boolean;
-    arRPCDisabled?: boolean;
-    arRPCDebug?: boolean;
-    arRPCProcessScanning?: boolean;
-    arRPCWebSocketAutoReconnect?: boolean;
+    tray: boolean;
+    minimizeToTray: boolean;
+    autoStartMinimized: boolean;
+    middleClickAutoscroll: boolean;
+    openLinksWithElectron: boolean;
+    staticTitle: boolean;
+    enableMenu: boolean;
+    enableShadow: boolean;
+    enableRoundedCorners: boolean;
+    disableSmoothScroll: boolean;
+    hardwareAcceleration: boolean;
+    hardwareVideoAcceleration: boolean;
+    arRPC: boolean;
+    arRPCDisabled: boolean;
+    arRPCDebug: boolean;
+    arRPCProcessScanning: boolean;
+    arRPCWebSocketAutoReconnect: boolean;
     arRPCWebSocketCustomHost?: string;
     arRPCWebSocketCustomPort?: number;
-    appBadge?: boolean;
-    badgeOnlyForMentions?: boolean;
-    enableTaskbarFlashing?: boolean;
-    disableMinSize?: boolean;
-    clickTrayToShowHide?: boolean;
-    customTitleBar?: boolean;
+    appBadge: boolean;
+    badgeOnlyForMentions: boolean;
+    enableTaskbarFlashing: boolean;
+    disableMinSize: boolean;
+    clickTrayToShowHide: boolean;
+    nativeTitleBar: boolean;
 
-    enableSplashScreen?: boolean;
-    splashTheming?: boolean;
+    enableSplashScreen: boolean;
+    splashTheming: boolean;
+    splashPixelated: boolean;
     splashColor?: string;
     splashBackground?: string;
-    splashProgress?: boolean;
-    splashPixelated?: boolean;
+    splashProgress: boolean;
 
     spellCheckLanguages?: string[];
 

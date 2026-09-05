@@ -5,6 +5,7 @@
  */
 
 import { desktopCapturer, session, Streams } from "electron";
+import { release } from "os";
 import type { StreamPick } from "renderer/components/ScreenSharePicker";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 
@@ -12,6 +13,8 @@ import { isWayland } from "./constants";
 import { getPlatformSpoofInfo } from "./gnuSpoofing";
 import { sendRendererCommand } from "./ipcCommands";
 import { handle } from "./utils/ipcWrappers";
+
+const supportsLoopbackWithoutChrome = process.platform === "win32" && Number(release().split(".").pop()) >= 19045;
 
 export function registerScreenShareHandler() {
     handle(IpcEvents.CAPTURER_GET_LARGE_THUMBNAIL, async (_, id: string) => {
@@ -77,7 +80,10 @@ export function registerScreenShareHandler() {
         const streams: Streams = {
             video: source
         };
-        if (choice.audio && getPlatformSpoofInfo().originalPlatform === "win32") streams.audio = "loopback";
+        if (choice.audio && getPlatformSpoofInfo().originalPlatform === "win32") {
+            // @ts-expect-error loopbackWithoutChrome is real but not documented
+            streams.audio = supportsLoopbackWithoutChrome ? "loopbackWithoutChrome" : "loopback";
+        }
 
         callback(streams);
     });

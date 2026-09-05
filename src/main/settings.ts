@@ -6,15 +6,24 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import { DefaultEquibopSettings } from "shared/defaultSettings";
 import type { Settings as TSettings, State as TState } from "shared/settings";
 import { SettingsStore } from "shared/utils/SettingsStore";
 
 import { DATA_DIR, VENCORD_SETTINGS_FILE } from "./constants";
+import { mergeDefaults } from "./utils/mergeDefaults";
 
 const SETTINGS_FILE = join(DATA_DIR, "settings.json");
 const STATE_FILE = join(DATA_DIR, "state.json");
 
-function loadSettings<T extends object = any>(file: string, name: string) {
+function migrateSettings(settings: any) {
+    if (typeof settings.customTitleBar === "boolean") {
+        settings.nativeTitleBar ??= !settings.customTitleBar;
+        delete settings.customTitleBar;
+    }
+}
+
+function loadSettings<T extends object = any>(file: string, name: string, defaults?: T) {
     let settings = {} as T;
     try {
         const content = readFileSync(file, "utf8");
@@ -24,6 +33,11 @@ function loadSettings<T extends object = any>(file: string, name: string) {
             console.error(`Failed to parse ${name}.json:`, err);
         }
     } catch {}
+
+    if (defaults) {
+        migrateSettings(settings);
+        mergeDefaults(settings, defaults);
+    }
 
     const store = new SettingsStore(settings);
     store.addGlobalChangeListener(o => {
@@ -38,6 +52,6 @@ function loadSettings<T extends object = any>(file: string, name: string) {
     return store;
 }
 
-export const Settings = loadSettings<TSettings>(SETTINGS_FILE, "Equibop settings");
+export const Settings = loadSettings<TSettings>(SETTINGS_FILE, "Equibop settings", DefaultEquibopSettings);
 export const VencordSettings = loadSettings<any>(VENCORD_SETTINGS_FILE, "Vencord settings");
 export const State = loadSettings<TState>(STATE_FILE, "Equibop state");

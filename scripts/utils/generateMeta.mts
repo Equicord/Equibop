@@ -39,7 +39,8 @@ function generateDescription(description: string, descriptionNode: Element) {
 const releases = await fetch("https://api.github.com/repos/Equicord/Equibop/releases", {
     headers: {
         Accept: "application/vnd.github+json",
-        "X-Github-Api-Version": "2022-11-28"
+        "X-Github-Api-Version": "2022-11-28",
+        ...(process.env.GITHUB_TOKEN && { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` })
     }
 }).then(res => res.json());
 

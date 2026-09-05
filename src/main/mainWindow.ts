@@ -166,6 +166,25 @@ function initMenuBar(win: BrowserWindow) {
             accelerator: "CmdOrCtrl+=",
             role: "zoomIn",
             visible: false
+        },
+        // numpad zooms
+        {
+            label: "Zoom in (hidden)",
+            accelerator: "CmdOrCtrl+numadd",
+            role: "zoomIn",
+            visible: false
+        },
+        {
+            label: "Zoom out (hidden)",
+            accelerator: "CmdOrCtrl+numsub",
+            role: "zoomOut",
+            visible: false
+        },
+        {
+            label: "Reset Zoom (hidden)",
+            accelerator: "CmdOrCtrl+num0",
+            role: "resetZoom",
+            visible: false
         }
     ] satisfies MenuItemList;
 
@@ -326,17 +345,24 @@ function getWindowBoundsOptions(): BrowserWindowConstructorOptions {
 function buildBrowserWindowOptions(): BrowserWindowConstructorOptions {
     addSplashLog();
 
-    const { staticTitle, transparencyOption, enableMenu, customTitleBar, splashTheming, splashBackground } =
-        Settings.store;
+    const {
+        staticTitle,
+        transparencyOption,
+        enableMenu,
+        enableShadow,
+        enableRoundedCorners,
+        nativeTitleBar,
+        splashTheming,
+        splashBackground
+    } = Settings.store;
 
-    const { frameless, transparent, macosVibrancyStyle } = VencordSettings.store;
+    const { transparent, macosVibrancyStyle } = VencordSettings.store;
 
-    const noFrame = frameless === true || customTitleBar === true;
-    const backgroundColor =
-        splashTheming !== false ? splashBackground : nativeTheme.shouldUseDarkColors ? "#313338" : "#ffffff";
+    const frameless = !nativeTitleBar;
+    const backgroundColor = splashTheming ? splashBackground : nativeTheme.shouldUseDarkColors ? "#313338" : "#ffffff";
 
     const options: BrowserWindowConstructorOptions = {
-        show: Settings.store.enableSplashScreen === false && !CommandLine.values["start-minimized"],
+        show: !Settings.store.enableSplashScreen && !CommandLine.values["start-minimized"],
         backgroundColor,
         ...(process.platform === "win32"
             ? { icon: join(STATIC_DIR, "icon.ico") }
@@ -356,8 +382,10 @@ function buildBrowserWindowOptions(): BrowserWindowConstructorOptions {
             // disable renderer backgrounding to prevent the app from unloading when in the background
             backgroundThrottling: false
         },
-        frame: !noFrame,
+        frame: !frameless,
         autoHideMenuBar: enableMenu,
+        hasShadow: enableShadow,
+        roundedCorners: enableRoundedCorners,
         ...getWindowBoundsOptions()
     };
 
@@ -370,7 +398,7 @@ function buildBrowserWindowOptions(): BrowserWindowConstructorOptions {
         options.backgroundColor = "#00000000";
         options.backgroundMaterial = transparencyOption;
 
-        if (customTitleBar) {
+        if (frameless) {
             options.transparent = true;
         }
     }
@@ -406,13 +434,13 @@ function createMainWindow() {
 
     addSplashLog();
 
-    if (process.platform === "darwin" && Settings.store.customTitleBar) win.setWindowButtonVisibility(false);
+    if (process.platform === "darwin" && !Settings.store.nativeTitleBar) win.setWindowButtonVisibility(false);
     if (process.platform !== "win32" && CommandLine.values["windows-spoof"]) {
         spoofGnu(win);
     }
 
     win.on("close", e => {
-        const useTray = !isDeckGameMode && Settings.store.minimizeToTray !== false && Settings.store.tray !== false;
+        const useTray = !isDeckGameMode && Settings.store.minimizeToTray && Settings.store.tray;
         if (isQuitting || (process.platform !== "darwin" && !useTray)) return;
 
         e.preventDefault();
@@ -477,7 +505,7 @@ export async function createWindows() {
     const startMinimized = CommandLine.values["start-minimized"];
 
     let splash: BrowserWindow | undefined;
-    if (Settings.store.enableSplashScreen !== false) {
+    if (Settings.store.enableSplashScreen) {
         splash = await createSplashWindow(startMinimized);
 
         // SteamOS letterboxes and scales it terribly, so just full screen it
