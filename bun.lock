@@ -792,7 +792,7 @@
 
     "levn": ["levn@0.4.1", "", { "dependencies": { "prelude-ls": "^1.2.1", "type-check": "~0.4.0" } }, "sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ=="],
 
-    "libvesktop": ["libvesktop@file:packages/libvesktop", { "devDependencies": { "node-addon-api": "^8.5.0", "node-gyp": "^11.4.2" } }],
+    "libvesktop": ["libvesktop@file:packages/libvesktop", { "devDependencies": { "node-addon-api": "^8.9.2", "node-gyp": "^11.5.0" } }],
 
     "locate-path": ["locate-path@6.0.0", "", { "dependencies": { "p-locate": "^5.0.0" } }, "sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw=="],
 
