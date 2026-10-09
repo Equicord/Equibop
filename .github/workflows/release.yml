@@ -96,7 +96,7 @@ jobs:
         uses: signpath/github-action-submit-signing-request@v1
         with:
           api-token: ${{ secrets.SIGNPATH_API_KEY }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          organization-id: ${{ secrets.SIGNPATH_ORG_ID }}
           project-slug: Equibop
           signing-policy-slug: test-signing
           artifact-configuration-slug: app
@@ -122,7 +122,7 @@ jobs:
         uses: signpath/github-action-submit-signing-request@v1
         with:
           api-token: ${{ secrets.SIGNPATH_API_KEY }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          organization-id: ${{ secrets.SIGNPATH_ORG_ID }}
           project-slug: Equibop
           signing-policy-slug: test-signing
           artifact-configuration-slug: installer
