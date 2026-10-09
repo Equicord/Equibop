@@ -1,0 +1,145 @@
+name: Test Windows Signing
+
+on:
+  # workflow_dispatch only shows up once this file is on the default branch,
+  # so pushing to this branch runs it before then
+  push:
+    branches:
+      - test-signing
+  workflow_dispatch:
+    inputs:
+      signing-policy:
+        type: choice
+        description: SignPath signing policy
+        default: test-signing
+        options:
+          - test-signing
+          - release-signing
+
+permissions:
+  contents: read
+  # SignPath downloads the unsigned artifacts from this run
+  actions: read
+
+jobs:
+  sign-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Package app
+        run: bun run electron-builder --win --x64 --arm64 --dir --publish never
+
+      - name: Upload unsigned app
+        id: upload-unsigned-app
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app-unsigned
+          path: |
+            dist/win-unpacked
+            dist/win-arm64-unpacked
+          if-no-files-found: error
+
+      - name: Sign app
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_KEY }}
+          organization-id: ${{ vars.SIGNPATH_ORG_ID }}
+          project-slug: Equibop
+          signing-policy-slug: ${{ inputs.signing-policy || 'test-signing' }}
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.upload-unsigned-app.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed/app
+
+      - name: Package installer
+        run: bun run electron-builder --win --publish never
+        env:
+          SIGNED_WIN_DIR: signed/app
+
+      - name: Upload unsigned installer
+        id: upload-unsigned-installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-unsigned
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Sign installer
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_KEY }}
+          organization-id: ${{ vars.SIGNPATH_ORG_ID }}
+          project-slug: Equibop
+          signing-policy-slug: ${{ inputs.signing-policy || 'test-signing' }}
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed/installer
+
+      - name: Update installer metadata
+        shell: bash
+        run: |
+          cp signed/installer/*.exe dist/
+          bun run scripts/build/updateWinUpdateInfo.mjs
+
+      - name: Verify signatures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $7z = "C:\Program Files\7-Zip\7z.exe"
+          $setup = Get-ChildItem dist -Filter "*-Setup-*.exe" | Select-Object -First 1
+
+          $failed = $false
+
+          & $7z x $setup.FullName -overify/installer -y | Out-Null
+          foreach ($arch in "64", "arm64") {
+            $archive = "verify/installer/`$PLUGINSDIR/app-$arch.7z"
+            if (-not (Test-Path -LiteralPath $archive)) { "FAIL installer is missing app-$arch.7z"; $failed = $true; continue }
+            & $7z x $archive "-overify/installer-$arch" -y | Out-Null
+          }
+          Get-ChildItem dist -Filter "*-win.zip" | ForEach-Object { & $7z x $_.FullName "-overify/zip-$($_.BaseName)" -y | Out-Null }
+
+          $files = @($setup.FullName) +
+            (Get-ChildItem verify -Recurse -Include equibop.exe, arrpc.exe).FullName
+
+          foreach ($file in $files) {
+            $sig = Get-AuthenticodeSignature $file
+            # test-signing certificates aren't trusted by Windows, so only require a signature to be present
+            $ok = $sig.SignerCertificate -ne $null -and $sig.Status -notin "NotSigned", "HashMismatch"
+            if (-not $ok) { $failed = $true }
+            "{0,-4} {1,-13} {2}  ({3})" -f ($(if ($ok) { "OK" } else { "FAIL" })), $sig.Status, (Resolve-Path -Relative $file), $sig.SignerCertificate.Subject
+          }
+
+          # latest.yml must describe the signed installer
+          $hash = [Convert]::ToBase64String([Security.Cryptography.SHA512]::Create().ComputeHash([IO.File]::ReadAllBytes($setup.FullName)))
+          if ((Get-Content dist/latest.yml -Raw) -notmatch [regex]::Escape($hash)) {
+            "FAIL latest.yml sha512 does not match the signed installer"
+            $failed = $true
+          } else {
+            "OK   latest.yml sha512 matches the signed installer"
+          }
+
+          if ($failed) { exit 1 }
+
+      - name: Upload signed output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-signed
+          path: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/*.zip
+            dist/latest.yml
+          if-no-files-found: ignore
