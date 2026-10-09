@@ -1,60 +1,147 @@
 name: Release
 
 on:
-    push:
-        tags:
-            - v*
-    workflow_dispatch:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
 
 permissions:
-    contents: write
+  contents: write
 
 jobs:
-    release:
-        runs-on: ${{ matrix.os }}
+  release:
+    runs-on: ${{ matrix.os }}
 
-        strategy:
-            matrix:
-                os: [macos-latest, ubuntu-latest, windows-latest]
-                include:
-                    - os: macos-latest
-                      platform: mac
-                    - os: ubuntu-latest
-                      platform: linux
-                    - os: windows-latest
-                      platform: windows
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
 
-        steps:
-            - uses: actions/checkout@v4
-            - uses: oven-sh/setup-bun@v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
 
-            - name: Install system dependencies
-              if: ${{ matrix.platform == 'linux' }}
-              run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
+      - name: Install system dependencies
+        if: ${{ matrix.platform == 'linux' }}
+        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
 
-            - name: Install dependencies
-              run: bun install
+      - name: Install dependencies
+        run: bun install
 
-            - name: Build
-              run: bun run build
+      - name: Build
+        run: bun run build
 
-            - name: Run Electron Builder
-              if: ${{ matrix.platform != 'mac' }}
-              run: |
-                  bun run electron-builder --${{ matrix.platform }} --publish always
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Electron Builder
+        if: ${{ matrix.platform != 'mac' }}
+        run: |
+          bun run electron-builder --${{ matrix.platform }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Run Electron Builder
-              if: ${{ matrix.platform == 'mac' }}
-              run: |
-                  echo "$API_KEY" > apple.p8
-                  bun run electron-builder --${{ matrix.platform }} --publish always
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  CSC_LINK: ${{ secrets.APPLE_SIGNING_CERT }}
-                  CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-                  API_KEY: ${{ secrets.APPLE_API_KEY }}
-                  APPLE_API_KEY: apple.p8
-                  APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-                  APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      - name: Run Electron Builder
+        if: ${{ matrix.platform == 'mac' }}
+        run: |
+          echo "$API_KEY" > apple.p8
+          bun run electron-builder --${{ matrix.platform }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.APPLE_SIGNING_CERT }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+          API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY: apple.p8
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+
+  release-windows:
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+      # SignPath downloads the unsigned artifacts from this run
+      actions: read
+
+    env:
+      SIGNPATH_PROJECT_SLUG: equibop
+      SIGNPATH_SIGNING_POLICY_SLUG: release-signing
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Package app
+        run: bun run electron-builder --win --x64 --arm64 --dir --publish never
+
+      - name: Upload unsigned app
+        id: upload-unsigned-app
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app-unsigned
+          path: |
+            dist/win-unpacked
+            dist/win-arm64-unpacked
+          if-no-files-found: error
+
+      - name: Sign app
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_KEY }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: Equibop
+          signing-policy-slug: test-signing
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.upload-unsigned-app.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed/app
+
+      - name: Package installer
+        run: bun run electron-builder --win --publish never
+        env:
+          SIGNED_WIN_DIR: signed/app
+
+      - name: Upload unsigned installer
+        id: upload-unsigned-installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-unsigned
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Sign installer
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_KEY }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: Equibop
+          signing-policy-slug: test-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed/installer
+
+      - name: Update installer metadata
+        shell: bash
+        run: |
+          cp signed/installer/*.exe dist/
+          bun run scripts/build/updateWinUpdateInfo.mjs
+
+      - name: Publish
+        shell: bash
+        # electron-builder publish only logs upload failures and still exits 0
+        run: |
+          bun run electron-builder publish --policy always -f dist/*.exe dist/*.exe.blockmap dist/*.zip dist/latest.yml 2>&1 | tee publish.log
+          ! grep -q "error publishing" publish.log
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
