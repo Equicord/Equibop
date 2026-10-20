@@ -688,16 +688,20 @@ function ModalComponent({
             const height = Number(qualitySettings.resolution);
             const width = Math.round(height * (16 / 9));
 
-            const conn = [...MediaEngineStore.getMediaEngine().connections].find(
-                connection => connection.streamUserId === UserStore.getCurrentUser().id
-            );
+            const applyStreamParameters = () => {
+                const conn = [...MediaEngineStore.getMediaEngine().connections].find(
+                    connection => connection.streamUserId === UserStore.getCurrentUser().id
+                );
+                if (!conn) return;
 
-            if (conn) {
                 conn.videoStreamParameters[0].maxFrameRate = frameRate;
                 conn.videoStreamParameters[0].maxResolution ??= { width: 0, height: 0 };
                 conn.videoStreamParameters[0].maxResolution.height = height;
                 conn.videoStreamParameters[0].maxResolution.width = width;
-            }
+                return conn;
+            };
+
+            applyStreamParameters();
 
             submit({
                 id: selected!,
@@ -705,9 +709,8 @@ function ModalComponent({
             });
 
             setTimeout(async () => {
-                const conn = [...MediaEngineStore.getMediaEngine().connections].find(
-                    connection => connection.streamUserId === UserStore.getCurrentUser().id
-                );
+                // the stream connection usually only exists after submit, so the encoder caps must be set again here
+                const conn = applyStreamParameters();
                 if (!conn) return;
 
                 const track = (conn as any).input.stream.getVideoTracks()[0];
