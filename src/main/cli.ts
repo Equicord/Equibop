@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import "./portable";
+
 import { app } from "electron";
 import { closeSync, constants as fsConstants, openSync, readFileSync, unlinkSync, writeSync } from "fs";
 import { tmpdir } from "os";

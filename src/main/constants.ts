@@ -5,20 +5,13 @@
  */
 
 import { app } from "electron";
-import { existsSync, mkdirSync } from "fs";
-import { dirname, join } from "path";
+import { mkdirSync } from "fs";
+import { join } from "path";
 
 import { CommandLine } from "./cli";
 
-const equibopDir = dirname(process.execPath);
-
-export const PORTABLE =
-    process.platform === "win32" &&
-    !process.execPath.toLowerCase().endsWith("electron.exe") &&
-    !existsSync(join(equibopDir, "Uninstall Equibop.exe"));
-
-export const DATA_DIR =
-    process.env.EQUICORD_USER_DATA_DIR || (PORTABLE ? join(equibopDir, "Data") : join(app.getPath("userData")));
+// portable.ts has already pointed userData at the portable Data folder if needed
+export const DATA_DIR = process.env.EQUICORD_USER_DATA_DIR || app.getPath("userData");
 
 mkdirSync(DATA_DIR, { recursive: true });
 
