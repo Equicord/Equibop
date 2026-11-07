@@ -26,13 +26,8 @@ export interface Settings {
     disableSmoothScroll: boolean;
     hardwareAcceleration: boolean;
     hardwareVideoAcceleration: boolean;
+    hardwareVideoEncoding: boolean;
     arRPC: boolean;
-    arRPCDisabled: boolean;
-    arRPCDebug: boolean;
-    arRPCProcessScanning: boolean;
-    arRPCWebSocketAutoReconnect: boolean;
-    arRPCWebSocketCustomHost?: string;
-    arRPCWebSocketCustomPort?: number;
     appBadge: boolean;
     badgeOnlyForMentions: boolean;
     enableTaskbarFlashing: boolean;

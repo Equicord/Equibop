@@ -4,13 +4,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { app } from "electron";
 import { closeSync, constants as fsConstants, openSync, readFileSync, unlinkSync, writeSync } from "fs";
 import { tmpdir } from "os";
 import { basename, join, resolve, sep } from "path";
+import { parseArgs, ParseArgsOptionDescriptor } from "util";
+
+import { app } from "electron";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { stripIndent } from "shared/utils/text";
-import { parseArgs, ParseArgsOptionDescriptor } from "util";
 
 export let isQueryInstance = false;
 
@@ -324,13 +325,16 @@ function setupSecondInstanceHandler() {
                 }
             });
         } else {
-            import("./mainWindow").then(({ mainWin }) => {
-                if (mainWin) {
-                    if (mainWin.isMinimized()) mainWin.restore();
-                    if (!mainWin.isVisible()) mainWin.show();
-                    mainWin.focus();
+            Promise.all([import("./mainWindow"), import("./utils/showWindow")]).then(
+                ([{ mainWin, openDeepLink }, { showWindow }]) => {
+                    if (!mainWin) return;
+
+                    const deepLink = commandLine.find(arg => arg.startsWith("discord://"));
+                    if (deepLink) openDeepLink(deepLink);
+
+                    showWindow(mainWin);
                 }
-            });
+            );
         }
     });
 }

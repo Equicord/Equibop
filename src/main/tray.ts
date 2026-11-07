@@ -4,17 +4,21 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { app, type BrowserWindow, dialog, Menu, type NativeImage, nativeImage, Tray } from "electron";
 import { join } from "path";
+
+import { app, type BrowserWindow, dialog, Menu, type NativeImage, nativeImage, Tray } from "electron";
 import { STATIC_DIR } from "shared/paths";
+import { sleep } from "shared/utils/sleep";
 
 import { createAboutWindow } from "./about";
 import { createArgumentsWindow } from "./arguments";
-import { createArRPCWindow } from "./arrpcWindow";
+import { isStatusNotifierHostRegistered } from "./dbus";
 import { AppEvents } from "./events";
 import { Settings } from "./settings";
 import { resolveAssetPath } from "./userAssets";
 import { clearData } from "./utils/clearData";
+import { relaunch } from "./utils/relaunch";
+import { showWindow } from "./utils/showWindow";
 import { downloadVencordAsar } from "./utils/vencordLoader";
 
 type TrayVariant = "tray" | "trayUnread" | "traySpeaking" | "trayIdle" | "trayMuted" | "trayDeafened";
@@ -198,6 +202,24 @@ export function destroyTray() {
     useNativeTray = false;
 }
 
+// Chromium gives up on the tray if no StatusNotifierHost is registered when it is created and never retries.
+// This happens when we are autostarted before the desktop shell is ready, so wait for it first
+async function waitForStatusNotifierHost() {
+    if (process.platform !== "linux") return;
+
+    for (let i = 0; i < 30; i++) {
+        if (isStatusNotifierHostRegistered()) return;
+
+        await sleep(1000);
+    }
+
+    console.warn(
+        "StatusNotifierHost not registered after 30 seconds. Equibop's Tray will likely not function correctly.\n" +
+            "If you are on GNOME, make sure you installed & enabled the AppIndicator and KStatusNotifierItem Support extension:\n" +
+            "https://extensions.gnome.org/extension/615/appindicator-support/"
+    );
+}
+
 export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean) => void) {
     if (tray || nativeTrayInitialized) {
         try {
@@ -223,7 +245,6 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                     { id: 2, label: "About", enabled: true, visible: true },
                     { id: 11, type: "separator" as const, enabled: true, visible: true },
                     { id: 5, label: "Launch Arguments", enabled: true, visible: true },
-                    { id: 10, label: "Configure Rich Presence", enabled: true, visible: true },
                     { id: 12, type: "separator" as const, enabled: true, visible: true },
                     { id: 3, label: "Repair Equicord", enabled: true, visible: true },
                     { id: 4, label: "Reset Equibop", enabled: true, visible: true },
@@ -232,7 +253,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                     { id: 9, label: "Quit", enabled: true, visible: true }
                 ];
 
-                const menuResult = nativeSNI.setStatusNotifierMenu(menuItems);
+                nativeSNI.setStatusNotifierMenu(menuItems);
 
                 nativeTrayWindow = win;
                 nativeTrayUpdateCallback = () => {
@@ -260,8 +281,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                                 .then(() => {
                                     setTimeout(() => {
                                         destroyTray();
-                                        app.relaunch();
-                                        app.quit();
+                                        relaunch();
                                     }, 0);
                                 })
                                 .catch(err => {
@@ -278,14 +298,10 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                         case 5: // launch arguments
                             createArgumentsWindow();
                             break;
-                        case 10: // configure rich presence
-                            createArRPCWindow();
-                            break;
                         case 8: // restart
                             setTimeout(() => {
                                 destroyTray();
-                                app.relaunch();
-                                app.quit();
+                                relaunch();
                             }, 0);
                             break;
                         case 9: // quit
@@ -311,14 +327,14 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
 
     onTrayClick = () => {
         if (Settings.store.clickTrayToShowHide && win.isVisible()) win.hide();
-        else win.show();
+        else showWindow(win);
     };
 
     const trayMenu = Menu.buildFromTemplate([
         {
             label: "Open",
             click() {
-                win.show();
+                showWindow(win);
             }
         },
         {
@@ -329,10 +345,6 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
         {
             label: "Launch Arguments",
             click: createArgumentsWindow
-        },
-        {
-            label: "Configure Rich Presence",
-            click: createArRPCWindow
         },
         { type: "separator" },
         {
@@ -349,8 +361,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
                     return;
                 }
                 destroyTray();
-                app.relaunch();
-                app.quit();
+                relaunch();
             }
         },
         {
@@ -364,8 +375,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
             label: "Restart",
             click() {
                 destroyTray();
-                app.relaunch();
-                app.quit();
+                relaunch();
             }
         },
         {
@@ -376,6 +386,9 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
             }
         }
     ]);
+
+    await waitForStatusNotifierHost();
+    if (Settings.store.tray === false) return;
 
     try {
         const initialImage = await getCachedTrayImage(trayVariant);

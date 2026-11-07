@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Card, ErrorBoundary, HeadingTertiary, Paragraph, TextButton } from "@equicord/types/components";
+import { Card, ErrorBoundary, Paragraph, TextButton } from "@equicord/types/components";
+import { Heading } from "@equicord/types/components/Heading";
 import { FluxDispatcher, InviteActions } from "@equicord/types/webpack/common";
 import type { PropsWithChildren } from "react";
 
@@ -27,7 +28,7 @@ async function openSupportChannel() {
 function Fallback() {
     return (
         <Card variant="danger">
-            <HeadingTertiary>Something went wrong.</HeadingTertiary>
+            <Heading tag="h4">Something went wrong.</Heading>
             <Paragraph>
                 Please make sure Equicord and Equibop are fully up to date. You can get help in our{" "}
                 <TextButton variant="link" onClick={openSupportChannel}>

@@ -5,23 +5,20 @@
  */
 
 import "./screenSharePicker.css";
-
 import { classNameFactory } from "@equicord/types/api/Styles";
-import {
-    Button,
-    Card,
-    CogWheel,
-    FormSwitch,
-    Heading,
-    HeadingTertiary,
-    Margins,
-    Paragraph,
-    RestartIcon,
-    Span
-} from "@equicord/types/components";
-import { closeModal, Logger, openModal, useAwaiter, useForceUpdater } from "@equicord/types/utils";
+import { Button, Card, CogWheel, FormSwitch, Margins, Paragraph, RestartIcon, Span } from "@equicord/types/components";
+import { Heading } from "@equicord/types/components/Heading";
+import { Logger, useAwaiter, useForceUpdater } from "@equicord/types/utils";
 import { onceReady } from "@equicord/types/webpack";
-import { FluxDispatcher, MediaEngineStore, Modal, Select, UserStore, useState } from "@equicord/types/webpack/common";
+import {
+    closeModal,
+    FluxDispatcher,
+    Modal,
+    openModal,
+    Select,
+    UserStore,
+    useState
+} from "@equicord/types/webpack/common";
 import { Node } from "@vencord/venmic";
 import type { Dispatch, SetStateAction } from "react";
 import { State, useSettings, useVesktopState } from "renderer/settings";
@@ -29,7 +26,8 @@ import { isLinux, isWindows } from "renderer/utils";
 
 import { SimpleErrorBoundary } from "./SimpleErrorBoundary";
 
-const StreamResolutions = ["480", "720", "1080", "1440", "2160"] as const;
+const StreamResolutions = ["480", "720", "1080", "1440", "2160", "0"] as const;
+const StreamResolutionLabels = ["480", "720", "1080", "1440", "2160", "Source"];
 const StreamFps = ["15", "30", "60"] as const;
 
 const cl = classNameFactory("vcd-screen-picker-");
@@ -65,8 +63,6 @@ interface Source {
 }
 
 export let currentSettings: StreamSettings | null = null;
-
-const logger = new Logger("EquibopScreenShare");
 
 let streamCloseCallback: ((data: any) => void) | null = null;
 let streamUpdateCallback: ((data: any) => void) | null = null;
@@ -119,13 +115,24 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                     submit={async v => {
                         didSubmit = true;
 
-                        if (v.includeSources && v.includeSources !== "None") {
-                            if (v.includeSources === "Entire System") {
-                                await VesktopNative.virtmic.startSystem(
-                                    !v.excludeSources || isSpecialSource(v.excludeSources) ? [] : v.excludeSources
-                                );
-                            } else {
-                                await VesktopNative.virtmic.start(v.includeSources);
+                        if (isLinux) {
+                            try {
+                                if (v.includeSources && v.includeSources !== "None") {
+                                    if (v.includeSources === "Entire System") {
+                                        await VesktopNative.virtmic.startSystem(
+                                            !v.excludeSources || isSpecialSource(v.excludeSources)
+                                                ? []
+                                                : v.excludeSources
+                                        );
+                                    } else {
+                                        await VesktopNative.virtmic.start(v.includeSources);
+                                    }
+                                } else {
+                                    await VesktopNative.virtmic.stop();
+                                }
+                            } catch (e) {
+                                // still start the stream, just without audio
+                                new Logger("EquibopScreenShare").error("Failed to set up venmic", e);
                             }
                         }
 
@@ -351,20 +358,27 @@ function StreamSettingsUi({
 
     return (
         <div>
-            <HeadingTertiary className={Margins.bottom8}>What you're streaming</HeadingTertiary>
+            <Heading tag="h4" className={Margins.bottom8}>
+                What you're streaming
+            </Heading>
             <Card className={cl("card", "preview")}>
                 <img src={thumb} alt="" className={cl(isLinux ? "preview-img-linux" : "preview-img")} />
                 <Paragraph>{source.name}</Paragraph>
             </Card>
 
-            <HeadingTertiary className={Margins.bottom8}>Stream Settings</HeadingTertiary>
+            <Heading tag="h4" className={Margins.bottom8}>
+                Stream Settings
+            </Heading>
 
             <Card className={cl("card")}>
                 <div className={cl("quality")}>
                     <section className={cl("quality-section")}>
-                        <Heading tag="h5">Resolution</Heading>
+                        <Heading tag="h5" className={Margins.bottom8}>
+                            Resolution
+                        </Heading>
                         <OptionRadio
                             options={StreamResolutions}
+                            labels={StreamResolutionLabels}
                             settings={qualitySettings}
                             settingsKey="resolution"
                             onChange={value => (qualitySettings.resolution = value)}
@@ -372,7 +386,9 @@ function StreamSettingsUi({
                     </section>
 
                     <section className={cl("quality-section")}>
-                        <Heading tag="h5">Frame Rate</Heading>
+                        <Heading tag="h5" className={Margins.bottom8}>
+                            Frame Rate
+                        </Heading>
                         <OptionRadio
                             options={StreamFps}
                             settings={qualitySettings}
@@ -383,7 +399,9 @@ function StreamSettingsUi({
                 </div>
                 <div className={cl("quality")}>
                     <section className={cl("quality-section")}>
-                        <Heading tag="h5">Content Type</Heading>
+                        <Heading tag="h5" className={Margins.bottom8}>
+                            Content Type
+                        </Heading>
                         <div>
                             <OptionRadio
                                 options={["motion", "detail"]}
@@ -603,7 +621,9 @@ function AudioSourcePickerLinux({
         <>
             <div className={cl("audio-sources")}>
                 <section>
-                    <Heading tag="h5">{loading ? "Loading Sources..." : "Audio Sources"}</Heading>
+                    <Heading tag="h5" className={Margins.bottom8}>
+                        {loading ? "Loading Sources..." : "Audio Sources"}
+                    </Heading>
                     <SimpleErrorBoundary>
                         <Select
                             options={allSources.map(({ name, value }) => ({
@@ -622,7 +642,9 @@ function AudioSourcePickerLinux({
                 </section>
                 {includeSources === "Entire System" && (
                     <section>
-                        <Heading tag="h5">Exclude Sources</Heading>
+                        <Heading tag="h5" className={Margins.bottom8}>
+                            Exclude Sources
+                        </Heading>
                         <SimpleErrorBoundary>
                             <Select
                                 options={allSources
@@ -676,63 +698,17 @@ function ModalComponent({
         audio: true,
         includeSources: "None"
     });
-    const qualitySettings = (useVesktopState().screenshareQuality ??= {
+    useVesktopState().screenshareQuality ??= {
         resolution: "720",
         frameRate: "30"
-    });
+    };
 
     const goLive = () => {
         currentSettings = settings;
-        try {
-            const frameRate = Number(qualitySettings.frameRate);
-            const height = Number(qualitySettings.resolution);
-            const width = Math.round(height * (16 / 9));
-
-            const conn = [...MediaEngineStore.getMediaEngine().connections].find(
-                connection => connection.streamUserId === UserStore.getCurrentUser().id
-            );
-
-            if (conn) {
-                conn.videoStreamParameters[0].maxFrameRate = frameRate;
-                conn.videoStreamParameters[0].maxResolution ??= { width: 0, height: 0 };
-                conn.videoStreamParameters[0].maxResolution.height = height;
-                conn.videoStreamParameters[0].maxResolution.width = width;
-            }
-
-            submit({
-                id: selected!,
-                ...settings
-            });
-
-            setTimeout(async () => {
-                const conn = [...MediaEngineStore.getMediaEngine().connections].find(
-                    connection => connection.streamUserId === UserStore.getCurrentUser().id
-                );
-                if (!conn) return;
-
-                const track = (conn as any).input.stream.getVideoTracks()[0];
-
-                const constraints = {
-                    ...track.getConstraints(),
-                    frameRate: { min: frameRate, ideal: frameRate },
-                    width: { min: 640, ideal: width, max: width },
-                    height: { min: 480, ideal: height, max: height },
-                    advanced: [{ width: width, height: height }],
-                    resizeMode: "none"
-                };
-
-                try {
-                    await track.applyConstraints(constraints);
-
-                    logger.info("Applied constraints successfully. New constraints:", track.getConstraints());
-                } catch (e) {
-                    logger.error("Failed to apply constraints.", e);
-                }
-            }, 100);
-        } catch (error) {
-            logger.error("Error while submitting stream.", error);
-        }
-
+        submit({
+            id: selected!,
+            ...settings
+        });
         close();
     };
 

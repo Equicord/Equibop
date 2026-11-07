@@ -10,6 +10,7 @@ import {
     app,
     BrowserWindow,
     type BrowserWindowConstructorOptions,
+    dialog,
     Menu,
     type MenuItemConstructorOptions,
     nativeTheme,
@@ -19,15 +20,23 @@ import {
 } from "electron";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
 import { STATIC_DIR } from "shared/paths";
+import { debounce } from "shared/utils/debounce";
 import { isTruthy } from "shared/utils/guards";
 import { once } from "shared/utils/once";
 import type { SettingsStore } from "shared/utils/SettingsStore";
 
 import { createAboutWindow } from "./about";
 import { destroyAppBadge } from "./appBadge";
-import { cleanupArRPC, initArRPC, setupArRPC } from "./arrpc";
 import { CommandLine } from "./cli";
-import { BrowserUserAgent, DEFAULT_HEIGHT, DEFAULT_WIDTH, isLinux, MIN_HEIGHT, MIN_WIDTH } from "./constants";
+import {
+    BrowserUserAgent,
+    DEFAULT_HEIGHT,
+    DEFAULT_WIDTH,
+    isLinux,
+    MessageBoxChoice,
+    MIN_HEIGHT,
+    MIN_WIDTH
+} from "./constants";
 import { AppEvents } from "./events";
 import { spoofGnu } from "./gnuSpoofing";
 import { sendRendererCommand } from "./ipcCommands";
@@ -37,7 +46,9 @@ import { addSplashLog, createSplashWindow, updateSplashMessage } from "./splash"
 import { darwinURL } from "./startup";
 import { destroyTray, initTray } from "./tray";
 import { clearData } from "./utils/clearData";
-import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
+import { isDiscordUrl } from "./utils/isDiscordUrl";
+import { handleExternalUrl, makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";
+import { relaunch } from "./utils/relaunch";
 import { applyDeckKeyboardFix, askToApplySteamLayout, isDeckGameMode } from "./utils/steamOS";
 import { downloadVencordAsar, ensureVencordFiles } from "./utils/vencordLoader";
 import { VENCORD_DIR } from "./vencordDir";
@@ -50,7 +61,6 @@ app.on("before-quit", async () => {
     isQuitting = true;
     destroyTray();
     destroyAppBadge();
-    await cleanupArRPC();
 });
 
 export let mainWin: BrowserWindow;
@@ -93,8 +103,7 @@ function initMenuBar(win: BrowserWindow) {
             async click() {
                 await downloadVencordAsar();
                 destroyTray();
-                app.relaunch();
-                app.quit();
+                relaunch();
             },
             toolTip: "Equibop will automatically restart after this operation"
         },
@@ -110,8 +119,7 @@ function initMenuBar(win: BrowserWindow) {
             accelerator: "CmdOrCtrl+Shift+R",
             click() {
                 destroyTray();
-                app.relaunch();
-                app.quit();
+                relaunch();
             }
         },
         ...(!isDarwin
@@ -216,11 +224,12 @@ function initWindowBoundsListeners(win: BrowserWindow) {
     win.on("unmaximize", saveState);
     win.on("restore", saveState);
 
-    const saveBounds = () => {
-        if (win.isMaximized()) return;
+    // move and resize fire continuously while dragging
+    const saveBounds = debounce(() => {
+        if (win.isDestroyed() || win.isMaximized()) return;
 
         State.store.windowBounds = win.getBounds();
-    };
+    });
 
     win.on("resize", saveBounds);
     win.on("move", saveBounds);
@@ -305,6 +314,18 @@ function initStaticTitle(win: BrowserWindow) {
             win.off("page-title-updated", listener);
         }
     });
+}
+
+function initNavigationGuard(win: BrowserWindow) {
+    const onNavigate = (e: Electron.Event<{ url: string; isMainFrame: boolean }>) => {
+        if (!e.isMainFrame || isDiscordUrl(e.url)) return;
+
+        e.preventDefault();
+        handleExternalUrl(e.url);
+    };
+
+    win.webContents.on("will-navigate", onNavigate);
+    win.webContents.on("will-redirect", onNavigate);
 }
 
 function getWindowBoundsOptions(): BrowserWindowConstructorOptions {
@@ -462,6 +483,7 @@ function createMainWindow() {
 
     initMenuBar(win);
     makeLinksOpenExternally(win);
+    initNavigationGuard(win);
     initSettingsListeners(win);
     initSpellCheck(win);
     initDevtoolsListeners(win);
@@ -483,15 +505,31 @@ function createMainWindow() {
 
 const runVencordMain = once(() => require(VENCORD_DIR));
 
+// discord://-/channels/@me -> /channels/@me
+function getDeepLinkPath(uri: string | undefined) {
+    if (!uri || !URL.canParse(uri)) return;
+
+    return new URL(uri).pathname;
+}
+
 export function loadUrl(uri: string | undefined) {
     const branch = Settings.store.discordBranch;
     const subdomain = branch === "canary" || branch === "ptb" ? `${branch}.` : "";
+    const path = getDeepLinkPath(uri)?.slice(1) || "app";
 
     // we do not rely on 'did-finish-load' because it fires even if loadURL fails which triggers early detruction of the splash
     mainWin
-        .loadURL(`https://${subdomain}discord.com/${uri ? new URL(uri).pathname.slice(1) || "app" : "app"}`)
+        .loadURL(`https://${subdomain}discord.com/${path}`)
         .then(() => AppEvents.emit("appLoaded"))
         .catch(error => retryUrl(error.url, error.code));
+}
+
+// Navigates within Discord instead of reloading, used for links opened while we're already running
+export function openDeepLink(uri: string) {
+    const path = getDeepLinkPath(uri);
+    if (!path) return;
+
+    sendRendererCommand(IpcCommands.NAVIGATE, path).catch(err => console.error("Failed to open deep link", uri, err));
 }
 
 const retryDelay = 1000;
@@ -499,6 +537,25 @@ function retryUrl(url: string, description: string) {
     console.log(`retrying in ${retryDelay}ms`);
     updateSplashMessage(`Failed to load Discord: ${description}`);
     setTimeout(() => loadUrl(url), retryDelay);
+}
+
+async function showStartupError(error: unknown) {
+    const canRepair = !State.store.equicordDir;
+    const { response } = await dialog.showMessageBox({
+        type: "error",
+        message: "Equibop failed to start",
+        detail: canRepair
+            ? `${error}\n\nRepair will re-download Equicord and restart Equibop.`
+            : `${error}\n\nYou are using a custom Equicord directory, make sure it contains a valid build.`,
+        buttons: canRepair ? ["Repair", "Quit"] : ["Quit"],
+        defaultId: MessageBoxChoice.Default,
+        cancelId: canRepair ? MessageBoxChoice.Cancel : MessageBoxChoice.Default
+    });
+
+    if (!canRepair || response === MessageBoxChoice.Cancel) return app.exit(1);
+
+    updateSplashMessage("Repairing Equicord...");
+    downloadVencordAsar().then(relaunch, showStartupError);
 }
 
 export async function createWindows() {
@@ -513,12 +570,17 @@ export async function createWindows() {
         addSplashLog();
     }
 
-    addSplashLog();
-    await ensureVencordFiles();
-    runVencordMain();
+    try {
+        addSplashLog();
+        await ensureVencordFiles();
+        runVencordMain();
 
-    addSplashLog();
-    mainWin = createMainWindow();
+        addSplashLog();
+        mainWin = createMainWindow();
+    } catch (err) {
+        console.error("Failed to start Equibop:", err);
+        return showStartupError(err);
+    }
 
     AppEvents.on("appLoaded", () => {
         splash?.destroy();
@@ -551,7 +613,5 @@ export async function createWindows() {
     });
 
     mainWin.webContents.on("render-process-gone", (event, details) => console.log(details));
-    setupArRPC();
-    initArRPC();
     if (isLinux) initKeybinds();
 }

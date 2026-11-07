@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Heading, Paragraph } from "@equicord/types/components";
+import { Paragraph } from "@equicord/types/components";
+import { Heading } from "@equicord/types/components/Heading";
 import { Margins } from "@equicord/types/utils";
 import { Select } from "@equicord/types/webpack/common";
 
@@ -16,7 +17,9 @@ export const WindowsTransparencyControls: SettingsComponent = ({ settings }) => 
 
     return (
         <div>
-            <Heading tag="h5">Transparency Options</Heading>
+            <Heading tag="h5" className={Margins.bottom8}>
+                Transparency Options
+            </Heading>
             <Paragraph className={Margins.bottom8}>
                 Requires a full restart. You will need a theme that supports transparency for this to work.
             </Paragraph>

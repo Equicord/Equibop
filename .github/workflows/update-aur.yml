@@ -1,0 +1,42 @@
+name: Update AUR packages
+
+on:
+    release:
+        types:
+            - published
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: "Release tag to update to, defaults to the latest release"
+                required: false
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        container: archlinux:latest
+        strategy:
+            fail-fast: false
+            matrix:
+                package:
+                    - equibop-bin
+                    - equibop
+        steps:
+            - name: Install packaging tools
+              run: |
+                  pacman -Syu --noconfirm --needed base-devel git openssh sudo pacman-contrib jq
+
+                  useradd --create-home builder
+                  printf 'builder ALL=(ALL:ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/builder
+                  chmod 0440 /etc/sudoers.d/builder
+
+            - name: Check out repository
+              uses: actions/checkout@v7
+
+            - name: Update AUR package
+              env:
+                  PACKAGE: ${{ matrix.package }}
+                  EVENT_NAME: ${{ github.event_name }}
+                  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+                  AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+              run: |
+                  sudo -u builder --preserve-env=PACKAGE,AUR_SSH_PRIVATE_KEY,EVENT_NAME,RELEASE_TAG bash .github/workflows/update-aur-pkg.sh

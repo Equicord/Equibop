@@ -5,10 +5,9 @@
  */
 
 import "./UserAssets.css";
-
-import { BaseText, Button, FormSwitch } from "@equicord/types/components";
-import { Margins, openModal, wordsFromCamel, wordsToTitle } from "@equicord/types/utils";
-import { Modal, showToast, useState } from "@equicord/types/webpack/common";
+import { Button, FormSwitch, Text } from "@equicord/types/components";
+import { Margins, wordsFromCamel, wordsToTitle } from "@equicord/types/utils";
+import { Modal, openModal, showToast, useState } from "@equicord/types/webpack/common";
 import { UserAssetType } from "main/userAssets";
 import { useSettings } from "renderer/settings";
 
@@ -42,7 +41,7 @@ function openAssetsModal() {
 
 function Asset({ asset }: { asset: UserAssetType }) {
     // cache busting
-    const [version, setVersion] = useState(Date.now());
+    const [version, setVersion] = useState(() => Date.now());
     const settings = useSettings();
 
     const isSplash = asset === "splash";
@@ -56,15 +55,15 @@ function Asset({ asset }: { asset: UserAssetType }) {
                 settings.splashPixelated = false;
             }
         } else if (res === "failed") {
-            showToast("Something went wrong. Please try again");
+            showToast({ text: "Something went wrong. Please try again", variant: "critical" });
         }
     };
 
     return (
         <section>
-            <BaseText size="md" weight="medium" tag="h3">
+            <Text size="md" weight="medium" tag="h3">
                 {wordsToTitle(wordsFromCamel(asset))}
-            </BaseText>
+            </Text>
             <div className="vcd-user-assets-asset">
                 <img
                     className="vcd-user-assets-image"

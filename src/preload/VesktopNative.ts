@@ -20,13 +20,6 @@ ipcRenderer.on(IpcEvents.SPELLCHECK_RESULT, (_, w: string, s: string[]) => {
     spellCheckCallbacks.forEach(cb => cb(w, s));
 });
 
-type ArRPCActivityCallback = (data: any) => void;
-const arrpcActivityCallbacks = new Set<ArRPCActivityCallback>();
-
-ipcRenderer.on(IpcEvents.ARRPC_ACTIVITY, (_, data: any) => {
-    arrpcActivityCallbacks.forEach(cb => cb(data));
-});
-
 let onDevtoolsOpen = () => {};
 let onDevtoolsClose = () => {};
 
@@ -85,15 +78,6 @@ export const VesktopNative = {
         replaceMisspelling: (word: string) => invoke<void>(IpcEvents.SPELLCHECK_REPLACE_MISSPELLING, word),
         addToDictionary: (word: string) => invoke<void>(IpcEvents.SPELLCHECK_ADD_TO_DICTIONARY, word)
     },
-    arrpc: {
-        onActivity(cb: ArRPCActivityCallback) {
-            arrpcActivityCallbacks.add(cb);
-        },
-        offActivity(cb: ArRPCActivityCallback) {
-            arrpcActivityCallbacks.delete(cb);
-        },
-        openSettings: () => invoke<void>(IpcEvents.ARRPC_OPEN_SETTINGS)
-    },
     win: {
         focus: () => invoke<void>(IpcEvents.FOCUS),
         close: (key?: string) => invoke<void>(IpcEvents.CLOSE, key),
@@ -141,6 +125,11 @@ export const VesktopNative = {
     debug: {
         launchGpu: () => invoke<void>(IpcEvents.DEBUG_LAUNCH_GPU),
         launchWebrtcInternals: () => invoke<void>(IpcEvents.DEBUG_LAUNCH_WEBRTC_INTERNALS)
+    },
+    rpc: {
+        ready: () => invoke<void>(IpcEvents.RPC_READY),
+        send: (id: string, json: string) => invoke<void>(IpcEvents.RPC_SEND, id, json),
+        close: (id: string, code: number, message?: string) => invoke<void>(IpcEvents.RPC_CLOSE, id, code, message)
     },
     commands: {
         onCommand(cb: (message: IpcMessage) => void) {

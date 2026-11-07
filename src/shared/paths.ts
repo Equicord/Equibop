@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { DATA_DIR } from "main/constants";
 import { join } from "path";
+
+import { DATA_DIR } from "main/constants";
 
 export const STATIC_DIR = /* @__PURE__ */ join(__dirname, "..", "..", "static");
 export const BADGE_DIR = /* @__PURE__ */ join(STATIC_DIR, "badges");

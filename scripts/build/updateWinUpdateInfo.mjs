@@ -1,7 +1,8 @@
-import { buildBlockMap } from "app-builder-lib/out/targets/blockmap/blockmap.js";
 import { readFileSync, writeFileSync } from "fs";
-import { dump, load } from "js-yaml";
 import { join } from "path";
+
+import { buildBlockMap } from "app-builder-lib/out/targets/blockmap/blockmap.js";
+import { dump, load } from "js-yaml";
 
 const distDir = join(process.cwd(), "dist");
 const latestPath = join(distDir, "latest.yml");

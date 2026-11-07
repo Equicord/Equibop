@@ -74,7 +74,7 @@
             word-break: break-word;
             padding: 0 16px;
             position: absolute;
-            font-size: 14px
+            font-size: 14px;
         }
 
         p {
@@ -85,6 +85,10 @@
             width: 128px;
             height: 128px;
             object-fit: contain;
+        }
+
+        .pixelated img {
+            image-rendering: pixelated;
         }
     </style>
 </head>
@@ -106,7 +110,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        const messageElement = document.querySelector('.message');
+        const messageElement = document.querySelector(".message");
         const progressBar = document.getElementById("progress");
         const progressPercentage = document.getElementById("progress-percentage");
         const progressSection = document.getElementById("progress-section");

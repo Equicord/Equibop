@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Card, HeadingTertiary, Paragraph } from "@equicord/types/components";
+import { Button, Card, Paragraph } from "@equicord/types/components";
+import { Heading } from "@equicord/types/components/Heading";
 import { useAwaiter } from "@equicord/types/utils";
 
 import { cl } from "./Settings";
@@ -16,7 +17,7 @@ export function OutdatedVesktopWarning() {
 
     return (
         <Card variant="warning" className={cl("updater-card")}>
-            <HeadingTertiary>Your Equibop is outdated!</HeadingTertiary>
+            <Heading tag="h4">Your Equibop is outdated!</Heading>
             <Paragraph>Staying up to date is important for security and stability.</Paragraph>
             <Button onClick={() => VesktopNative.app.openUpdater()} variant="secondary">
                 Open Updater

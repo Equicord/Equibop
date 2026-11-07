@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Socket } from "net";
 import { spawnSync } from "node:child_process";
 import { constants, existsSync, lstatSync, open, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
-import { Socket } from "net";
 import { IpcEvents } from "shared/IpcEvents";
 
 import { mainWin } from "./mainWindow";
@@ -82,7 +82,7 @@ function cleanup() {
     if (!socketFile) return;
     try {
         unlinkSync(socketFile);
-    } catch (err) {}
+    } catch {}
 }
 
 process.on("exit", cleanup);

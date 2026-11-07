@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BrowserWindow, nativeTheme } from "electron";
 import { join } from "path";
+
+import { BrowserWindow } from "electron";
 import { SplashProps } from "shared/browserWinProperties";
 import { STATIC_DIR } from "shared/paths";
 
@@ -46,34 +47,17 @@ export async function createSplashWindow(startMinimized = false) {
     });
 
     splash.webContents.setMaxListeners(15);
-    loadView(splash, "splash.html");
 
     const { splashBackground, splashColor, splashTheming, splashProgress, splashPixelated } = Settings.store;
 
-    const isDark = nativeTheme.shouldUseDarkColors;
-    const systemBg = isDark ? "hsl(223 6.7% 20.6%)" : "white";
-    const systemFg = isDark ? "white" : "black";
-    const systemFgSemiTrans = isDark ? "rgb(255 255 255 / 0.2)" : "rgb(0 0 0 / 0.2)";
-
+    const params = new URLSearchParams();
     if (splashTheming) {
-        const fg = splashColor || systemFg;
-        const bg = splashBackground || systemBg;
-        const fgSemiTrans = splashColor
-            ? splashColor.replace("rgb(", "rgba(").replace(")", ", 0.2)")
-            : systemFgSemiTrans;
-
-        splash.webContents.insertCSS(
-            `body { --bg: ${bg} !important; --fg: ${fg} !important; --fg-semi-trans: ${fgSemiTrans} !important; }`
-        );
-    } else {
-        splash.webContents.insertCSS(
-            `body { --bg: ${systemBg} !important; --fg: ${systemFg} !important; --fg-semi-trans: ${systemFgSemiTrans} !important; }`
-        );
+        if (splashColor) params.set("fg", splashColor);
+        if (splashBackground) params.set("bg", splashBackground);
     }
+    if (splashPixelated) params.set("pixelated", "");
 
-    if (splashPixelated) {
-        splash.webContents.insertCSS(`img { image-rendering: pixelated; }`);
-    }
+    loadView(splash, "splash.html", params);
 
     const customSplashPath = join(DATA_DIR, "userAssets", "splash");
     const hasCustomSplash = await fileExistsAsync(customSplashPath);

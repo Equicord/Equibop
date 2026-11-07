@@ -6,20 +6,22 @@
 
 import "./updater";
 import "./ipc";
+import "./rpc";
 import "./userAssets";
 import "./vesktopProtocol";
-
-import { app, BrowserWindow, nativeTheme } from "electron";
 import { rmSync } from "fs";
 import { join } from "path";
 
+import { app, BrowserWindow, nativeTheme } from "electron";
+
 import { DATA_DIR, SESSION_DATA_DIR } from "./constants";
 import { createFirstLaunchTour } from "./firstLaunch";
-import { createWindows } from "./mainWindow";
+import { createWindows, mainWin, openDeepLink } from "./mainWindow";
 import { registerMediaPermissionsHandler } from "./mediaPermissions";
 import { registerScreenShareHandler } from "./screenShare";
 import { Settings, State } from "./settings";
 import { setAsDefaultProtocolClient } from "./utils/setAsDefaultProtocolClient";
+import { showWindow } from "./utils/showWindow";
 import { isDeckGameMode } from "./utils/steamOS";
 
 console.log("Equibop v" + app.getVersion());
@@ -49,7 +51,8 @@ function init() {
     clearStaleWasmCodeCache();
     setAsDefaultProtocolClient("discord");
 
-    const { disableSmoothScroll, hardwareAcceleration, hardwareVideoAcceleration } = Settings.store;
+    const { disableSmoothScroll, hardwareAcceleration, hardwareVideoAcceleration, hardwareVideoEncoding } =
+        Settings.store;
     const { launchArguments } = State.store;
 
     const enabledFeatures = new Set(app.commandLine.getSwitchValue("enable-features").split(","));
@@ -61,8 +64,11 @@ function init() {
         enableHardwareAcceleration = false;
         app.disableHardwareAcceleration();
     } else {
-        if (hardwareVideoAcceleration) {
+        if (hardwareVideoEncoding) {
             enabledFeatures.add("AcceleratedVideoEncoder");
+        }
+
+        if (hardwareVideoAcceleration) {
             enabledFeatures.add("AcceleratedVideoDecoder");
 
             if (isLinux) {
@@ -159,7 +165,12 @@ async function bootstrap() {
 
 export let darwinURL: string | undefined;
 app.on("open-url", (_, url) => {
-    darwinURL = url;
+    if (mainWin) {
+        openDeepLink(url);
+        showWindow(mainWin);
+    } else {
+        darwinURL = url;
+    }
 });
 
 app.on("window-all-closed", () => {

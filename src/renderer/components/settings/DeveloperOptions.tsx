@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Heading, Paragraph, TextButton } from "@equicord/types/components";
-import { Margins, openModal, useForceUpdater } from "@equicord/types/utils";
-import { Modal, Toasts } from "@equicord/types/webpack/common";
+import { Button, Paragraph, TextButton } from "@equicord/types/components";
+import { Heading } from "@equicord/types/components/Heading";
+import { Margins, promptToRestart, useForceUpdater } from "@equicord/types/utils";
+import { Modal, openModal, showToast } from "@equicord/types/webpack/common";
 import { Settings } from "shared/settings";
 
 import { cl, SettingsComponent } from "./Settings";
@@ -36,7 +37,7 @@ function openDeveloperOptionsModal(settings: Settings) {
     ));
 }
 
-const EquicordLocationPicker: SettingsComponent = ({ settings }) => {
+const EquicordLocationPicker: SettingsComponent = () => {
     const forceUpdate = useForceUpdater();
     const usingCustomEquicordDir = VesktopNative.fileManager.isUsingCustomVencordDir();
 
@@ -67,18 +68,12 @@ const EquicordLocationPicker: SettingsComponent = ({ settings }) => {
                             case "cancelled":
                                 break;
                             case "ok":
-                                Toasts.show({
-                                    message: "Equicord install changed. Fully restart Equibop to apply.",
-                                    id: Toasts.genId(),
-                                    type: Toasts.Type.SUCCESS
-                                });
+                                promptToRestart("relaunch");
                                 break;
                             case "invalid":
-                                Toasts.show({
-                                    message:
-                                        "You did not choose a valid Equicord install. Make sure you're selecting the dist dir!",
-                                    id: Toasts.genId(),
-                                    type: Toasts.Type.FAILURE
+                                showToast({
+                                    text: "You did not choose a valid Equicord install. Make sure you're selecting the dist dir!",
+                                    variant: "critical"
                                 });
                                 break;
                         }

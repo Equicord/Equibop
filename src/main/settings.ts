@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+
 import { DefaultEquibopSettings } from "shared/defaultSettings";
 import type { Settings as TSettings, State as TState } from "shared/settings";
 import { SettingsStore } from "shared/utils/SettingsStore";
@@ -21,6 +22,18 @@ function migrateSettings(settings: any) {
         settings.nativeTitleBar ??= !settings.customTitleBar;
         delete settings.customTitleBar;
     }
+
+    if (settings.arRPCDisabled === true) settings.arRPC = false;
+    for (const key of [
+        "arRPCDisabled",
+        "arRPCDebug",
+        "arRPCProcessScanning",
+        "arRPCWebSocketAutoReconnect",
+        "arRPCWebSocketCustomHost",
+        "arRPCWebSocketCustomPort"
+    ]) {
+        delete settings[key];
+    }
 }
 
 function loadSettings<T extends object = any>(file: string, name: string, defaults?: T) {
@@ -28,7 +41,9 @@ function loadSettings<T extends object = any>(file: string, name: string, defaul
     try {
         const content = readFileSync(file, "utf8");
         try {
-            settings = JSON.parse(content);
+            const parsed = JSON.parse(content);
+            if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) settings = parsed;
+            else console.error(`Ignoring ${name}.json because it is not an object`);
         } catch (err) {
             console.error(`Failed to parse ${name}.json:`, err);
         }
@@ -43,7 +58,9 @@ function loadSettings<T extends object = any>(file: string, name: string, defaul
     store.addGlobalChangeListener(o => {
         try {
             mkdirSync(dirname(file), { recursive: true });
-            writeFileSync(file, JSON.stringify(o, null, 4));
+            // write to a temp file first to avoid potential corruption
+            writeFileSync(file + ".tmp", JSON.stringify(o, null, 4));
+            renameSync(file + ".tmp", file);
         } catch (err) {
             console.error(`Failed to save settings to ${name}.json:`, err);
         }

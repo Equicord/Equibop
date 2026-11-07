@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { app, BrowserWindow } from "electron";
 import { join } from "path";
+
+import { app, BrowserWindow } from "electron";
 import { STATIC_DIR } from "shared/paths";
 
 import { makeLinksOpenExternally } from "./utils/makeLinksOpenExternally";

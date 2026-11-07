@@ -20,7 +20,10 @@ if (isQueryInstance) {
         await downloadVencordAsar();
         console.log("Repair complete.");
         process.exit(0);
-    })();
+    })().catch(err => {
+        console.error("Failed to repair Equicord:", err);
+        process.exit(1);
+    });
 } else {
     require("./startup");
 }

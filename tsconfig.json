@@ -19,6 +19,6 @@
 
         "types": ["node", "@equicord/types"]
     },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "dist", "src/main/arrpc/bunWorker.ts"]
+    "include": ["src/**/*", "packages/discord-rpc/src/**/*"],
+    "exclude": ["node_modules", "dist"]
 }

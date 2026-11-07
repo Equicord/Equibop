@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createWriteStream, mkdirSync } from "original-fs";
 import { dirname } from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { setTimeout } from "timers/promises";
+
+import { createWriteStream, mkdirSync } from "original-fs";
 
 interface FetchieOptions {
     retryOnNetworkError?: boolean;

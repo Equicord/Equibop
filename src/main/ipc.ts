@@ -6,7 +6,6 @@
 
 if (process.platform === "linux") import("./venmic");
 
-import { execFile } from "node:child_process";
 import { type FSWatcher, mkdirSync, readFileSync, watch } from "node:fs";
 import { open, readFile, stat } from "node:fs/promises";
 import { release } from "node:os";
@@ -19,7 +18,6 @@ import {
     ClipboardItem,
     dialog,
     type IpcMainInvokeEvent,
-    type RelaunchOptions,
     session,
     shell
 } from "electron";
@@ -28,7 +26,6 @@ import { debounce } from "shared/utils/debounce";
 
 import { IpcEvents } from "../shared/IpcEvents";
 import { setBadgeCount } from "./appBadge";
-import { createArRPCWindow } from "./arrpcWindow";
 import { autoStart } from "./autoStart";
 import { VENCORD_QUICKCSS_FILE, VENCORD_THEMES_DIR } from "./constants";
 import { AppEvents } from "./events";
@@ -38,7 +35,8 @@ import { Settings, State } from "./settings";
 import { enableHardwareAcceleration } from "./startup";
 import { handle, handleSync } from "./utils/ipcWrappers";
 import { PopoutWindows } from "./utils/popout";
-import { isDeckGameMode, showGamePage } from "./utils/steamOS";
+import { relaunch } from "./utils/relaunch";
+import { showWindow } from "./utils/showWindow";
 import { isValidVencordInstall } from "./utils/vencordLoader";
 import { VENCORD_DIR } from "./vencordDir";
 
@@ -73,31 +71,15 @@ handleSync(IpcEvents.AUTOSTART_ENABLED, () => autoStart.isEnabled());
 handle(IpcEvents.ENABLE_AUTOSTART, autoStart.enable);
 handle(IpcEvents.DISABLE_AUTOSTART, autoStart.disable);
 
-handle(IpcEvents.ARRPC_OPEN_SETTINGS, () => {
-    createArRPCWindow();
-});
-
 handleSync(IpcEvents.GET_PLATFORM_SPOOF_INFO, () => getPlatformSpoofInfo());
 
 handle(IpcEvents.SET_SETTINGS, (_, settings: typeof Settings.store, path?: string) => {
     Settings.setData(settings, path);
 });
 
-handle(IpcEvents.RELAUNCH, async () => {
+handle(IpcEvents.RELAUNCH, () => {
     setBadgeCount(0);
-
-    const options: RelaunchOptions = {
-        args: process.argv.slice(1).concat(["--relaunch"])
-    };
-    if (isDeckGameMode) {
-        // We can't properly relaunch when running under gamescope, but we can at least navigate to our page in Steam.
-        await showGamePage();
-    } else if (app.isPackaged && process.env.APPIMAGE) {
-        execFile(process.env.APPIMAGE, options.args);
-    } else {
-        app.relaunch(options);
-    }
-    app.exit();
+    return relaunch();
 });
 
 handleSync(IpcEvents.IS_USING_CUSTOM_VENCORD_DIR, () => !!State.store.equicordDir);
@@ -116,7 +98,7 @@ function getWindow(e: IpcMainInvokeEvent, key?: string) {
 }
 
 handle(IpcEvents.FOCUS, () => {
-    mainWin.show();
+    showWindow(mainWin);
     mainWin.setSkipTaskbar(false);
 });
 
