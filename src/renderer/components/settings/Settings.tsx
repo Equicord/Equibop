@@ -14,6 +14,7 @@ import { isMac } from "renderer/utils";
 import { AutoStartToggle } from "./AutoStartToggle";
 import { DeveloperOptionsButton } from "./DeveloperOptions";
 import { DiscordBranchPicker } from "./DiscordBranchPicker";
+import { DiscordBuildPicker } from "./DiscordBuildPicker";
 import { NotificationBadgeToggle } from "./NotificationBadgeToggle";
 import { OutdatedVesktopWarning } from "./OutdatedVesktopWarning";
 import { Updater } from "./Updater";
@@ -36,6 +37,7 @@ export type SettingsComponent = ComponentType<{ settings: typeof Settings.store 
 
 const SettingsOptions: Record<string, Array<BooleanSetting | SettingsComponent>> = {
     "Discord Branch": [DiscordBranchPicker],
+    "Discord Build": [DiscordBuildPicker],
     "System Startup & Performance": [
         AutoStartToggle,
         {

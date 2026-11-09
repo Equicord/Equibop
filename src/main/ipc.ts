@@ -28,6 +28,7 @@ import { IpcEvents } from "../shared/IpcEvents";
 import { setBadgeCount } from "./appBadge";
 import { autoStart } from "./autoStart";
 import { VENCORD_QUICKCSS_FILE, VENCORD_THEMES_DIR } from "./constants";
+import { getAssetDownloadStatus, getSavedBuilds } from "./discordBuild";
 import { AppEvents } from "./events";
 import { getPlatformSpoofInfo } from "./gnuSpoofing";
 import { mainWin } from "./mainWindow";
@@ -72,6 +73,8 @@ handle(IpcEvents.ENABLE_AUTOSTART, autoStart.enable);
 handle(IpcEvents.DISABLE_AUTOSTART, autoStart.disable);
 
 handleSync(IpcEvents.GET_PLATFORM_SPOOF_INFO, () => getPlatformSpoofInfo());
+handle(IpcEvents.GET_DISCORD_BUILDS, () => getSavedBuilds());
+handle(IpcEvents.GET_DISCORD_BUILD_ASSET_STATUS, () => getAssetDownloadStatus());
 
 handle(IpcEvents.SET_SETTINGS, (_, settings: typeof Settings.store, path?: string) => {
     Settings.setData(settings, path);

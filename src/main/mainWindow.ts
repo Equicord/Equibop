@@ -37,6 +37,7 @@ import {
     MIN_HEIGHT,
     MIN_WIDTH
 } from "./constants";
+import { applyBuildPin, saveLatestBuild } from "./discordBuild";
 import { AppEvents } from "./events";
 import { spoofGnu } from "./gnuSpoofing";
 import { sendRendererCommand } from "./ipcCommands";
@@ -496,9 +497,13 @@ function createMainWindow() {
 
     // if the open-url event is fired (in index.ts) while starting up, darwinURL will be set. If not fall back to checking the process args (which Windows and Linux use for URI calling.)
     // win.webContents.session.clearCache().then(() => {
-    loadUrl(darwinURL || process.argv.find(arg => arg.startsWith("discord://")));
+    const initialUrl = darwinURL || process.argv.find(arg => arg.startsWith("discord://"));
+    applyBuildPin(win).finally(() => loadUrl(initialUrl));
     addSplashLog();
     // });
+
+    addSettingsListener("pinnedDiscordBuild", () => applyBuildPin(win).then(() => win.webContents.reload()));
+    addSettingsListener("discordBuildAssets", () => applyBuildPin(win));
 
     return win;
 }
@@ -584,6 +589,7 @@ export async function createWindows() {
 
     AppEvents.on("appLoaded", () => {
         splash?.destroy();
+        saveLatestBuild();
 
         if (!startMinimized) {
             if (splash) mainWin?.show();

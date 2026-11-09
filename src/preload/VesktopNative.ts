@@ -6,6 +6,7 @@
 
 import type { Node } from "@vencord/venmic";
 import { ipcRenderer } from "electron/renderer";
+import type { AssetDownloadStatus, SavedDiscordBuild } from "main/discordBuild";
 import type { IpcMessage, IpcResponse } from "main/ipcCommands";
 import type { Settings } from "shared/settings";
 
@@ -37,6 +38,8 @@ export const VesktopNative = {
         getEnableHardwareAcceleration: () => sendSync<boolean>(IpcEvents.GET_ENABLE_HARDWARE_ACCELERATION),
         isOutdated: () => invoke<boolean>(IpcEvents.UPDATER_IS_OUTDATED),
         openUpdater: () => invoke<void>(IpcEvents.UPDATER_OPEN),
+        getDiscordBuilds: () => invoke<SavedDiscordBuild[]>(IpcEvents.GET_DISCORD_BUILDS),
+        getDiscordBuildAssetStatus: () => invoke<AssetDownloadStatus>(IpcEvents.GET_DISCORD_BUILD_ASSET_STATUS),
         getPlatformSpoofInfo: () =>
             sendSync<{
                 spoofed: boolean;

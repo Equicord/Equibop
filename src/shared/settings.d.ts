@@ -8,6 +8,8 @@ import type { Rectangle } from "electron";
 
 export interface Settings {
     discordBranch: "stable" | "canary" | "ptb";
+    pinnedDiscordBuild?: string;
+    discordBuildAssets?: boolean;
     transparencyOption: "none" | "mica" | "tabbed" | "acrylic";
     webRTCIPHandlingPolicy:
         | "default"
