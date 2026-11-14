@@ -19,6 +19,7 @@ export default globalExternalsWithRegExp({
     getModuleInfo(modulePath) {
         const path = modulePath.replace("@equicord/types/", "");
         let varName = names[path] as string | undefined;
+        if (!varName && path.startsWith("components/")) varName = names.components;
         if (!varName) {
             const altMapping = names[path.split("/")[0]] as string | undefined;
             if (!altMapping) throw new Error("Unknown module path: " + modulePath);
