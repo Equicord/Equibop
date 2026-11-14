@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Card, Paragraph } from "@equicord/types/components";
-import { Heading } from "@equicord/types/components/Heading";
+import { Button, Card, Heading, Paragraph } from "@equicord/types/components";
 import { useAwaiter } from "@equicord/types/utils";
 
 import { cl } from "./Settings";

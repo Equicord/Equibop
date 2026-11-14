@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Card, ErrorBoundary, Paragraph, TextButton } from "@equicord/types/components";
-import { Heading } from "@equicord/types/components/Heading";
+import { Card, ErrorBoundary, Heading, Paragraph, TextButton } from "@equicord/types/components";
 import { FluxDispatcher, InviteActions } from "@equicord/types/webpack/common";
 import type { PropsWithChildren } from "react";
 

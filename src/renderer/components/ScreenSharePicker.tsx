@@ -6,8 +6,7 @@
 
 import "./screenSharePicker.css";
 import { classNameFactory } from "@equicord/types/api/Styles";
-import { Button, Card, CogWheel, FormSwitch, Margins, Paragraph, RestartIcon, Span } from "@equicord/types/components";
-import { Heading } from "@equicord/types/components/Heading";
+import { Button, Card, CogWheel, FormSwitch, Heading, Margins, Paragraph, RestartIcon, Span } from "@equicord/types/components";
 import { Logger, useAwaiter, useForceUpdater } from "@equicord/types/utils";
 import { onceReady } from "@equicord/types/webpack";
 import {
