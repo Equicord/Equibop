@@ -213,3 +213,61 @@ navigator.mediaDevices.getDisplayMedia = async function (opts) {
 
     return stream;
 };
+
+/**
+ * Prevent transient audio playback when Discord creates an
+ * unmuted local video element for stream preview generation.
+ *
+ * Preserve the original MediaStream and its outgoing audio.
+ * Only the local preview player receives a video-only stream.
+ */
+if (isLinux) {
+    const proto = HTMLMediaElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(proto, "srcObject");
+    const originalSetter = descriptor?.set;
+
+    if (originalSetter && descriptor?.configurable) {
+        const previewTracks = new Map<string, MediaStreamTrack>();
+        const MAX_PREVIEW_STREAMS = 16;
+
+        Object.defineProperty(proto, "srcObject", {
+            ...descriptor,
+
+            set(this: HTMLMediaElement, value: MediaProvider | null) {
+                if (this instanceof HTMLVideoElement && value instanceof MediaStream) {
+                    if (this.muted && this.matches("video.media-engine-video")) {
+                        // Discard streams whose video tracks have stopped.
+                        for (const [id, track] of previewTracks) {
+                            if (track.readyState === "ended") previewTracks.delete(id);
+                        }
+
+                        const videoTrack = value.getVideoTracks()[0];
+
+                        if (videoTrack && value.getAudioTracks().length > 0) {
+                            previewTracks.delete(value.id);
+                            previewTracks.set(value.id, videoTrack);
+
+                            // Bound retained references in long-running sessions.
+                            if (previewTracks.size > MAX_PREVIEW_STREAMS) {
+                                const oldest = previewTracks.keys().next().value;
+                                if (oldest !== undefined) previewTracks.delete(oldest);
+                            }
+                        }
+                    } else if (
+                        !this.muted &&
+                        this.className === "" &&
+                        previewTracks.get(value.id)?.readyState === "live" &&
+                        value.getAudioTracks().length > 0 &&
+                        value.getVideoTracks().length > 0
+                    ) {
+                        logger.info("Suppressing preview player audio", value.id);
+
+                        value = new MediaStream(value.getVideoTracks());
+                    }
+                }
+
+                originalSetter.call(this, value);
+            }
+        });
+    }
+}
