@@ -87,7 +87,7 @@ function cleanup() {
 
 process.on("exit", cleanup);
 
-export function initKeybinds() {
+export function initKeybindFifo() {
     if (!socketFile) {
         console.warn("Keybinds disabled: XDG_RUNTIME_DIR is not set");
         return;

@@ -8,6 +8,7 @@ import { NavigationRouter, SettingsRouter } from "@equicord/types/webpack/common
 import { IpcCommands } from "shared/IpcEvents";
 
 import { openScreenSharePicker } from "./components/ScreenSharePicker";
+import { handleKeybind } from "./globalShortcuts/keybindHandler";
 import { getCallStartTime } from "./patches/tray";
 
 type IpcCommandHandler = (data: any) => any;
@@ -140,3 +141,5 @@ onIpcCommand(IpcCommands.QUERY_CALL_DURATION, () => {
 
     return `${mm}:${ss}`;
 });
+
+onIpcCommand(IpcCommands.KEYBINDS_TRIGGER, ({ action, pressed }) => handleKeybind(action, pressed));

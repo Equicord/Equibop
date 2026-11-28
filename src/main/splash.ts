@@ -104,10 +104,12 @@ export function addSplashLog() {
     sendToSplash("update-splash-progress", percentage);
 }
 
-export function getSplash() {
-    return splash;
-}
-
 export function updateSplashMessage(message: string) {
     sendToSplash("update-splash-message", message);
+}
+
+export function getSplashWindow() {
+    if (splash && !splash.isDestroyed()) {
+        return splash;
+    }
 }

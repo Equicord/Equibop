@@ -14,8 +14,10 @@ import { join } from "path";
 
 import { app, BrowserWindow, nativeTheme } from "electron";
 
-import { DATA_DIR, SESSION_DATA_DIR } from "./constants";
+import { DATA_DIR, isLinux, SESSION_DATA_DIR } from "./constants";
 import { createFirstLaunchTour } from "./firstLaunch";
+import { initSocket } from "./ipcSocket";
+import { initKeybinds } from "./keybinds";
 import { createWindows, mainWin, openDeepLink } from "./mainWindow";
 import { registerMediaPermissionsHandler } from "./mediaPermissions";
 import { registerScreenShareHandler } from "./screenShare";
@@ -27,8 +29,6 @@ import { isDeckGameMode } from "./utils/steamOS";
 console.log("Equibop v" + app.getVersion());
 
 process.env.EQUICORD_USER_DATA_DIR = DATA_DIR;
-
-const isLinux = process.platform === "linux";
 
 export let enableHardwareAcceleration = true;
 
@@ -144,6 +144,8 @@ function init() {
 
         registerScreenShareHandler();
         registerMediaPermissionsHandler();
+        initKeybinds();
+        initSocket();
 
         bootstrap();
 

@@ -19,6 +19,6 @@
 
         "types": ["node", "@equicord/types"]
     },
-    "include": ["src/**/*", "packages/discord-rpc/src/**/*"],
+    "include": ["src/**/*", "packages/discord-rpc/src/**/*", "scripts/**/*"],
     "exclude": ["node_modules", "dist"]
 }

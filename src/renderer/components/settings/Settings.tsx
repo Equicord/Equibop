@@ -8,6 +8,7 @@ import "./settings.css";
 import { classNameFactory } from "@equicord/types/api/Styles";
 import { Divider, ErrorBoundary, Text } from "@equicord/types/components";
 import { ComponentType } from "react";
+import { KeybindsButton } from "renderer/globalShortcuts/ShortcutSettings";
 import { getValueAndOnChange, Settings, useSettings } from "renderer/settings";
 import { isMac } from "renderer/utils";
 
@@ -134,7 +135,8 @@ const SettingsOptions: Record<string, Array<BooleanSetting | SettingsComponent>>
             key: "disableSmoothScroll",
             title: "Disable smooth scrolling",
             description: "Disables smooth scrolling"
-        }
+        },
+        KeybindsButton
     ],
     Notifications: [
         NotificationBadgeToggle,

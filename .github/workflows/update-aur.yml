@@ -10,6 +10,9 @@ on:
                 description: "Release tag to update to, defaults to the latest release"
                 required: false
 
+permissions:
+    contents: read
+
 jobs:
     update:
         runs-on: ubuntu-latest

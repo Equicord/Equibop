@@ -14,16 +14,13 @@ You can join our [discord server](https://equicord.org/discord) for commits, cha
 - Much more lightweight and faster than the official Discord app
 - Linux Screenshare with sound & wayland
 - Much better privacy, since Discord has no access to your system
+- Global keybinds, including push to talk (see [Global Keybinds](#global-keybinds))
 
 **Extra included changes**
 
 - Tray Customization with voice detection and notification badges
 - Command-line flags to toggle microphone and deafen status (Linux)
 - Custom Arguments from [this PR](https://github.com/Equicord/Equibop/pull/46)
-
-**Not fully Supported**:
-
-- Global Keybinds (Windows/macOS - use command-line flags on Linux instead)
 
 ## Equibop Arguments
 
@@ -71,6 +68,31 @@ Below you can find unofficial packages created by the community. They are not of
 - Arch Linux: [Equibop on the Arch user repository](https://aur.archlinux.org/packages?K=equibop)
 - Void Linux: [Equibop on the Void repository](https://void.creations.works/)
 - NixOS: `nix-shell -p equibop`
+
+## Global Keybinds
+
+Configure them in the Equibop settings, or from Discord's Keybinds and Voice & Video settings.
+
+- **Windows, Linux (X11)**: Bind any keys or mouse buttons in the Equibop keybind settings
+- **macOS**: Same as above, but Equibop needs the Accessibility permission
+- **Linux (Wayland)**: Wayland doesn't let apps listen to global input. Enable global shortcuts in the Equibop keybind settings and assign them in your system settings. This requires a desktop that supports the GlobalShortcuts portal, like GNOME or KDE
+
+You can also trigger actions from other programs, for example your compositor's keybinds:
+
+```sh
+equibop --run-shortcut toggleMute
+# Append :down or :up to only press or release, e.g. for push to talk
+equibop --run-shortcut pushToTalk:down
+equibop --run-shortcut pushToTalk:up
+```
+
+For lower latency, send the same commands as lines to the socket at `$XDG_RUNTIME_DIR/equibop.sock`:
+
+```sh
+echo "run-shortcut pushToTalk:down" | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/equibop.sock
+```
+
+Run `equibop --help` to see all actions.
 
 ## Building from Source
 

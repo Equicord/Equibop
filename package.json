@@ -31,7 +31,8 @@
         "generateMeta": "bun run scripts/utils/generateMeta.mts"
     },
     "dependencies": {
-        "electron-updater": "^6.8.11"
+        "electron-updater": "^6.8.11",
+        "uiohook-napi": "^1.5.5"
     },
     "optionalDependencies": {
         "@vencord/venmic": "^7.2.5"
@@ -39,21 +40,21 @@
     "devDependencies": {
         "@equicord/types": "1.15.17-2",
         "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
-        "@types/node": "^26.6.6",
+        "@types/node": "^26.6.11",
         "@types/react": "19.2.9",
         "discord-rpc": "workspace:*",
-        "electron": "^45.3.2",
+        "electron": "^45.5.0",
         "electron-builder": "^26.18.0",
         "esbuild": "^0.28.2",
         "eslint-plugin-simple-header": "^1.2.2",
         "libvesktop": "file:packages/libvesktop",
-        "oxfmt": "^0.76.0",
-        "oxlint": "^1.93.0",
+        "oxfmt": "^0.78.0",
+        "oxlint": "^1.95.0",
         "source-map-support": "^0.5.21",
         "tsx": "^4.23.15",
         "type-fest": "^5.10.0",
         "typescript": "^6.0.3",
-        "xml-formatter": "^3.7.0"
+        "xml-formatter": "^3.7.1"
     },
     "engines": {
         "bun": ">=1.3.0"
@@ -79,6 +80,7 @@
         "beforePack": "scripts/build/beforePack.mjs",
         "afterPack": "scripts/build/afterPack.mjs",
         "afterSign": "scripts/build/afterSign.mjs",
+        "npmRebuild": false,
         "toolsets": {
             "appimage": "1.0.3"
         },
@@ -196,7 +198,8 @@
         },
         "rpm": {
             "fpm": [
-                "--rpm-rpmbuild-define=_build_id_links none"
+                "--rpm-rpmbuild-define=_build_id_links none",
+                "--rpm-rpmbuild-define=_rpmformat 4"
             ]
         },
         "electronFuses": {

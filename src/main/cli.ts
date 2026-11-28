@@ -11,6 +11,7 @@ import { parseArgs, ParseArgsOptionDescriptor } from "util";
 
 import { app } from "electron";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
+import { parseShortcutCommand, SHORTCUT_ACTIONS } from "shared/utils/keybind";
 import { stripIndent } from "shared/utils/text";
 
 export let isQueryInstance = false;
@@ -80,6 +81,11 @@ const options = {
     "get-call-duration": {
         type: "boolean",
         description: "Get the duration of the current call ([hh]:mm:ss)"
+    },
+    "run-shortcut": {
+        type: "string",
+        description: `Trigger a keybind action in the running instance. Append :down or :up to only press or release it (e.g. for push to talk). Actions: ${SHORTCUT_ACTIONS.join(", ")}`,
+        argumentName: "action[:down|:up]"
     },
     repair: {
         type: "boolean",
@@ -201,18 +207,40 @@ export function checkCommandLineForHelpOrVersion() {
             app.exit(1);
         }
     }
+
+    const runShortcut = CommandLine.values["run-shortcut"];
+    if (runShortcut && !parseShortcutCommand(runShortcut)) {
+        console.error(
+            `Invalid value for --run-shortcut: ${runShortcut}\nExpected one of: ${SHORTCUT_ACTIONS.join(", ")}`
+        );
+        console.error("Optionally followed by :down or :up");
+        app.exit(1);
+    }
+}
+
+function forwardToRunningInstance(data: Record<string, unknown>, notRunningMessage: string) {
+    if (!app.requestSingleInstanceLock({ IS_DEV, ...data })) {
+        app.exit(0);
+        return true;
+    }
+
+    console.error(notRunningMessage);
+    app.exit(1);
+    return true;
+}
+
+function checkCommandLineForShortcutCommand() {
+    const runShortcut = CommandLine.values["run-shortcut"];
+
+    if (!runShortcut) return false;
+    return forwardToRunningInstance({ runShortcut }, "Equibop is not running, so --run-shortcut has no effect");
 }
 
 function checkCommandLineForToggleCommands() {
     const { "toggle-mic": toggleMic, "toggle-deafen": toggleDeafen, "toggle-vad": toggleVad } = CommandLine.values;
 
     if (!toggleMic && !toggleDeafen && !toggleVad) return false;
-    if (!app.requestSingleInstanceLock({ IS_DEV })) {
-        app.exit(0);
-    }
-
-    console.error("Equibop is not running. Toggle commands require a running instance.");
-    app.exit(1);
+    return forwardToRunningInstance({}, "Equibop is not running. Toggle commands require a running instance.");
 }
 
 function checkCommandLineForQueryCommands() {
@@ -279,6 +307,12 @@ function setupSecondInstanceHandler() {
     }
 
     app.on("second-instance", (_event, commandLine, _cwd, data: any) => {
+        if (data?.runShortcut) {
+            const command = parseShortcutCommand(data.runShortcut);
+            if (command) import("./keybinds").then(({ runShortcutCommand }) => runShortcutCommand(command));
+            return;
+        }
+
         if (data?.query && data?.responseFile) {
             const allowedQueries: string[] = [
                 IpcCommands.QUERY_IS_IN_CALL,
@@ -340,6 +374,7 @@ function setupSecondInstanceHandler() {
 }
 
 function checkForSecondInstance() {
+    if (checkCommandLineForShortcutCommand()) return;
     if (checkCommandLineForToggleCommands()) return;
     if (checkCommandLineForQueryCommands()) return;
 
